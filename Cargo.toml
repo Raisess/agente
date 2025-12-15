@@ -1,0 +1,7 @@
+[package]
+name = "agente"
+description = "A AI assistant that lives in your terminal."
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
