@@ -1,0 +1,7 @@
+[package]
+name = "agente-domain"
+description = "This packages holds the agente interfaces for the domain implementaition"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]

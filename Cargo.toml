@@ -4,4 +4,10 @@ description = "A AI assistant that lives in your terminal."
 version = "0.1.0"
 edition = "2024"
 
+[workspace]
+resolver = "3"
+members = ["crates/domain"]
+
 [dependencies]
+agente-domain = { path = "crates/domain" }
+tokio = { version = "1.48.0", features = ["full"] }
