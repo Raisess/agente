@@ -1,4 +1,3 @@
-pub mod command;
+pub mod core;
 pub mod models;
 pub mod repositories;
-pub mod tool;

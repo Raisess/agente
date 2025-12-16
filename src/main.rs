@@ -1,5 +1,5 @@
-use agente_app::tools::read::ReadTool;
-use agente_domain::tool::Tool;
+use agente_application::tools::read::ReadTool;
+use agente_domain::core::tool::Tool;
 
 #[tokio::main]
 async fn main() {

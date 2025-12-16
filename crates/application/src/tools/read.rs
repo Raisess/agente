@@ -1,6 +1,6 @@
 use std::io::Read;
 
-use agente_domain::tool::Tool;
+use agente_domain::core::tool::Tool;
 
 const CONTEXT: &str = "This tool should be used when a file need to be readed.";
 const INSTRUCTION: &str = "@TODO";
