@@ -4,7 +4,8 @@ use agente_domain::core::tool::Tool;
 use agente_domain::ports::io::Reader;
 
 const CONTEXT: &str = "This tool should be used when a file need to be readed.";
-const INSTRUCTION: &str = "@TODO";
+const INSTRUCTION: &str = "Analyze the information, understand the purpose \
+                           and consider the context for the next iteractions";
 
 pub struct ReadTool {
     reader: Arc<dyn Reader>,
@@ -22,11 +23,11 @@ impl Tool<String, std::io::Error> for ReadTool {
         Ok(content)
     }
 
-    fn context() -> &'static str {
+    fn context(&self) -> &'static str {
         CONTEXT
     }
 
-    fn instruction() -> &'static str {
+    fn instruction(&self) -> &'static str {
         INSTRUCTION
     }
 }

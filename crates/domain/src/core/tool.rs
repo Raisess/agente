@@ -17,8 +17,8 @@ where
     ) -> impl std::future::Future<Output = Result<HandlerResult, HandlerError>> + Send;
 
     /// Is the tool description, says when the tool should be used.
-    fn context() -> &'static str;
+    fn context(&self) -> &'static str;
 
     /// The tool usage instruction, says how the tool should be used.
-    fn instruction() -> &'static str;
+    fn instruction(&self) -> &'static str;
 }
