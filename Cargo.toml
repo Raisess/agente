@@ -8,7 +8,11 @@ edition = "2024"
 resolver = "3"
 members = [ "crates/application","crates/domain", "crates/infrastructure"]
 
+[workspace.dependencies]
+tokio = { version = "1.48.0", features = ["full"] }
+
 [dependencies]
 agente-application = { path = "crates/application" }
 agente-domain = { path = "crates/domain" }
-tokio = { version = "1.48.0", features = ["full"] }
+agente-infrastructure = { path = "crates/infrastructure" }
+tokio = { workspace = true }

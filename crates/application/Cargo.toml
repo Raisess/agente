@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 agente-domain = { path = "../domain" }
+tokio = { workspace = true }

@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "agente-application",
  "agente-domain",
+ "agente-infrastructure",
  "tokio",
 ]
 
@@ -16,11 +17,19 @@ name = "agente-application"
 version = "0.1.0"
 dependencies = [
  "agente-domain",
+ "tokio",
 ]
 
 [[package]]
 name = "agente-domain"
 version = "0.1.0"
+
+[[package]]
+name = "agente-infrastructure"
+version = "0.1.0"
+dependencies = [
+ "agente-domain",
+]
 
 [[package]]
 name = "bitflags"
@@ -39,10 +48,6 @@ name = "cfg-if"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
-
-[[package]]
-name = "infrastructure"
-version = "0.1.0"
 
 [[package]]
 name = "libc"

@@ -12,7 +12,7 @@ where
     /// @param argument - Is a text provided from the context that should be
     /// handled how the instruction says.
     fn handle(
-        &mut self,
+        &self,
         argument: &str,
     ) -> impl std::future::Future<Output = Result<HandlerResult, HandlerError>> + Send;
 
