@@ -2,13 +2,8 @@ use std::io::Read;
 
 use agente_domain::ports::io::{Reader, Writer};
 
+#[derive(Default)]
 pub struct FileSystem;
-
-impl FileSystem {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
 
 impl Reader for FileSystem {
     fn read(&self, path: &str) -> Result<String, std::io::Error> {

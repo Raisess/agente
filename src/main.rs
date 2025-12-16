@@ -6,7 +6,7 @@ use agente_infrastructure::file_system::FileSystem;
 
 #[tokio::main]
 async fn main() {
-    let fs = Arc::new(FileSystem::new());
+    let fs = Arc::new(FileSystem::default());
     let read_tool = ReadTool::new(fs);
     match read_tool.handle("src/main.rs").await {
         Ok(result) => println!("{result:#?}"),
