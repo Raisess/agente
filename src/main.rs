@@ -8,7 +8,7 @@ use agente_infrastructure::file_system::FileSystem;
 async fn main() {
     let fs = Arc::new(FileSystem::default());
     let read_tool = ReadTool::new(fs);
-    match read_tool.handle("src/main.rs").await {
+    match read_tool.handle(vec![String::from("src/main.rs")]).await {
         Ok(result) => println!("{result:#?}"),
         Err(err) => eprintln!("{err}"),
     }

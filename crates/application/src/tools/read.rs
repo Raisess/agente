@@ -18,7 +18,14 @@ impl ReadTool {
 }
 
 impl Tool<String, std::io::Error> for ReadTool {
-    async fn handle(&self, path: &str) -> Result<String, std::io::Error> {
+    async fn handle(
+        &self,
+        arguments: Vec<String>,
+    ) -> Result<String, std::io::Error> {
+        let path = arguments
+            .get(0)
+            .expect("`path` must be provided as argument 0");
+
         let content = self.reader.read(path)?;
         Ok(content)
     }
@@ -61,7 +68,10 @@ mod tests {
     async fn should_read_a_string_and_return() {
         let reader = SuccessReaderMock::new();
         let tool = ReadTool::new(std::sync::Arc::new(reader));
-        let result = tool.handle("file_path").await.expect("Failed to read");
+        let result = tool
+            .handle(vec![String::from("file_path")])
+            .await
+            .expect("Failed to read");
         assert_eq!(result, "file_path:some text");
     }
 
@@ -83,7 +93,7 @@ mod tests {
     async fn should_fail_to_read() {
         let reader = FailReaderMock::new();
         let tool = ReadTool::new(std::sync::Arc::new(reader));
-        let result = tool.handle("file_path").await;
+        let result = tool.handle(vec![String::from("file_path")]).await;
         assert_eq!(
             result.is_err_and(|err| err.kind() == std::io::ErrorKind::Other),
             true
