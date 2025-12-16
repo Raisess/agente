@@ -6,8 +6,9 @@ edition = "2024"
 
 [workspace]
 resolver = "3"
-members = ["crates/domain"]
+members = [ "crates/app","crates/domain"]
 
 [dependencies]
+agente-app = { path = "crates/app" }
 agente-domain = { path = "crates/domain" }
 tokio = { version = "1.48.0", features = ["full"] }

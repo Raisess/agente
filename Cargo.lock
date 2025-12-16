@@ -6,8 +6,16 @@ version = 4
 name = "agente"
 version = "0.1.0"
 dependencies = [
+ "agente-app",
  "agente-domain",
  "tokio",
+]
+
+[[package]]
+name = "agente-app"
+version = "0.1.0"
+dependencies = [
+ "agente-domain",
 ]
 
 [[package]]

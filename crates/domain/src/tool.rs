@@ -8,10 +8,17 @@ where
 {
     /// Executes the tool action, e.g.: ReadTool: Tool, will read some file on
     /// the host machine, and result in a success or a io error.
+    ///
+    /// @param argument - Is a text provided from the context that should be
+    /// handled how the instruction says.
     fn handle(
-        &self,
+        &mut self,
+        argument: &str,
     ) -> impl std::future::Future<Output = Result<HandlerResult, HandlerError>> + Send;
 
-    /// Is the tool description, in what context that tool should be used.
+    /// Is the tool description, says when the tool should be used.
     fn context() -> &'static str;
+
+    /// The tool usage instruction, says how the tool should be used.
+    fn instruction() -> &'static str;
 }
