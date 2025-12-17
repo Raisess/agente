@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use agente_domain::core::tool::Tool;
+use agente_domain::core::tool::{Tool, ToolError};
 use agente_domain::ports::io::Reader;
 
 pub struct ReadTool {
@@ -13,11 +13,12 @@ impl ReadTool {
     }
 }
 
-impl Tool<String, std::io::Error> for ReadTool {
+#[async_trait::async_trait]
+impl Tool for ReadTool {
     async fn handle(
         &self,
         arguments: Vec<String>,
-    ) -> Result<String, std::io::Error> {
+    ) -> Result<String, ToolError> {
         let path = arguments
             .get(0)
             .expect("`path` must be provided as argument 0");
@@ -40,8 +41,9 @@ impl Tool<String, std::io::Error> for ReadTool {
 
     fn usage_instruction(&self) -> Option<&'static str> {
         Some(
-            "analyze the information of next prompt, understand the purpose \
-             and consider the context for the next iteractions",
+            "analyze the information of next prompt, which is the file \
+             content, understand the purpose and consider the context for the \
+             next iteractions",
         )
     }
 }
@@ -102,7 +104,7 @@ mod tests {
         let tool = ReadTool::new(std::sync::Arc::new(reader));
         let result = tool.handle(vec![String::from("file_path")]).await;
         assert_eq!(
-            result.is_err_and(|err| err.kind() == std::io::ErrorKind::Other),
+            result.is_err_and(|err| { err.message() == "other error" }),
             true
         )
     }

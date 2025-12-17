@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use agente_domain::core::tool::Tool;
+use agente_domain::core::tool::{Tool, ToolError};
 use agente_domain::ports::io::Writer;
 
 pub struct WriteTool {
@@ -13,11 +13,12 @@ impl WriteTool {
     }
 }
 
-impl Tool<(), std::io::Error> for WriteTool {
+#[async_trait::async_trait]
+impl Tool for WriteTool {
     async fn handle(
         &self,
         arguments: Vec<String>,
-    ) -> Result<(), std::io::Error> {
+    ) -> Result<String, ToolError> {
         let path = arguments
             .get(0)
             .expect("`path` must be provided as argument 0");
@@ -26,7 +27,7 @@ impl Tool<(), std::io::Error> for WriteTool {
             .expect("`content` must be provided as argument 1");
 
         self.writer.write(path, content.as_bytes())?;
-        Ok(())
+        Ok(String::new())
     }
 
     fn context(&self) -> &'static str {
@@ -74,5 +75,36 @@ mod tests {
             .handle(vec![String::from("path"), String::from("content")])
             .await;
         assert_eq!(result.is_ok(), true);
+    }
+
+    struct FailWriterMock;
+
+    impl FailWriterMock {
+        fn new() -> Self {
+            Self {}
+        }
+    }
+
+    impl Writer for FailWriterMock {
+        fn write(
+            &self,
+            _path: &str,
+            _data: &[u8],
+        ) -> Result<(), std::io::Error> {
+            Err(std::io::ErrorKind::Other.into())
+        }
+    }
+
+    #[tokio::test]
+    async fn should_fail_to_write() {
+        let writer = FailWriterMock::new();
+        let tool = WriteTool::new(std::sync::Arc::new(writer));
+        let result = tool
+            .handle(vec![String::from("file_path"), String::from("content")])
+            .await;
+        assert_eq!(
+            result.is_err_and(|err| { err.message() == "other error" }),
+            true
+        )
     }
 }

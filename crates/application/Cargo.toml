@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 agente-domain = { path = "../domain" }
+async-trait = { workspace = true }
 tokio = { workspace = true }

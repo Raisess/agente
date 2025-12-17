@@ -1,5 +1,7 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
+use agente::prompt::prompt;
 use agente_application::tools::{read::ReadTool, write::WriteTool};
 use agente_domain::core::tool::Tool;
 use agente_infrastructure::file_system::FileSystem;
@@ -7,16 +9,24 @@ use agente_infrastructure::file_system::FileSystem;
 #[tokio::main]
 async fn main() {
     let fs = Arc::new(FileSystem::default());
-    let read = ReadTool::new(fs.clone());
+
+    let mut tools = HashMap::<&str, Box<dyn Tool>>::new();
+    tools.insert("Read", Box::new(ReadTool::new(fs.clone())));
+    tools.insert("Write", Box::new(WriteTool::new(fs.clone())));
+
+    let base_prompt = prompt(&tools);
+    println!("{base_prompt}");
+
+    let read = tools.get("Read").expect("Read tool to be ready");
     match read.handle(vec![String::from("src/main.rs")]).await {
         Ok(result) => {
             println!("{result:#?}");
-            let write = WriteTool::new(fs);
+            let write = tools.get("Write").expect("Write tool to be ready");
             write
                 .handle(vec![String::from("copy.txt"), result])
                 .await
                 .expect("Failed to write text file");
         }
-        Err(err) => eprintln!("{err}"),
-    }
+        Err(err) => eprintln!("{err:#?}"),
+    };
 }
