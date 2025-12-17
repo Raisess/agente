@@ -13,12 +13,15 @@ where
     /// handled how the instruction says.
     fn handle(
         &self,
-        argument: &str,
+        arguments: Vec<String>,
     ) -> impl std::future::Future<Output = Result<HandlerResult, HandlerError>> + Send;
 
     /// Is the tool description, says when the tool should be used.
     fn context(&self) -> &'static str;
 
+    /// Is the tool parameter format instruction, to be passed as arguments.
+    fn format_instruction(&self) -> Option<&'static str>;
+
     /// The tool usage instruction, says how the tool should be used.
-    fn instruction(&self) -> &'static str;
+    fn usage_instruction(&self) -> Option<&'static str>;
 }
