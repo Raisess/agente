@@ -20,6 +20,7 @@ pub trait Tool {
     fn usage_instruction(&self) -> Option<&'static str>;
 }
 
+/// Generic error wrapper for tool implementations
 #[derive(Debug)]
 pub struct ToolError {
     message: String,
