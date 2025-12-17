@@ -1,5 +1,3 @@
-use std::io::Read;
-
 use agente_domain::ports::io::{Reader, Writer};
 
 #[derive(Default)]
@@ -7,17 +5,14 @@ pub struct FileSystem;
 
 impl Reader for FileSystem {
     fn read(&self, path: &str) -> Result<String, std::io::Error> {
-        let mut file = std::fs::File::open(path)?;
-
-        let mut data = String::new();
-        file.read_to_string(&mut data)?;
-
+        let data = std::fs::read_to_string(path)?;
         Ok(data)
     }
 }
 
 impl Writer for FileSystem {
-    fn write(&self, _path: &str, _data: &[u8]) -> Result<(), std::io::Error> {
-        todo!()
+    fn write(&self, path: &str, data: &[u8]) -> Result<(), std::io::Error> {
+        std::fs::write(path, data)?;
+        Ok(())
     }
 }
