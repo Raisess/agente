@@ -7,11 +7,9 @@ pub fn prompt(tools: &HashMap<&str, Box<dyn Tool>>) -> String {
         .iter()
         .map(|(name, tool)| {
             format!(
-                "{name}(context: \"{}\", reponse format: \"{}\", usage: \
-                 \"{}\")",
+                "{name}(context: \"{}\", reponse format: \"{}\")",
                 tool.context(),
-                tool.format_instruction().unwrap_or(""),
-                tool.usage_instruction().unwrap_or("")
+                tool.format_instruction().unwrap_or("")
             )
         })
         .collect::<Vec<String>>()
@@ -20,8 +18,10 @@ pub fn prompt(tools: &HashMap<&str, Box<dyn Tool>>) -> String {
     format!(
         "your actions should be based on the next described functions, you \
          shouldn’t use any of pre built tools you have, consider this tool \
-         set: {tools_prompt}, return just like each tool described using this \
-         format: {{ \"tool\": \"<ToolName>\", \"result\": \"<ToolResult>\" \
-         }}, now determine what to do for the next prompt"
+         set: {tools_prompt}, when the prompt matches one of more tool \
+         requirement return just like each tool described using this format: \
+         [{{ \"tool\": \"<ToolName>\", \"summary\": \"<summarize what you \
+         gonna do>\", \"result\": <ToolResult> }}], now determine what to do \
+         for the next prompt"
     )
 }

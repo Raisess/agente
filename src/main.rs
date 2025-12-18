@@ -17,7 +17,7 @@ async fn main() {
     let base_prompt = prompt(&tools);
     println!("{base_prompt}");
 
-    let read = tools.get("Read").expect("Read tool to be ready");
+    /*let read = tools.get("Read").expect("Read tool to be ready");
     match read.handle(vec![String::from("src/main.rs")]).await {
         Ok(result) => {
             println!("{result:#?}");
@@ -28,5 +28,5 @@ async fn main() {
                 .expect("Failed to write text file");
         }
         Err(err) => eprintln!("{err:#?}"),
-    };
+    };*/
 }

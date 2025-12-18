@@ -41,9 +41,9 @@ impl Tool for ReadTool {
 
     fn usage_instruction(&self) -> Option<&'static str> {
         Some(
-            "analyze the information of next prompt, which is the file \
-             content, understand the purpose and consider the context for the \
-             next iteractions",
+            "analyze the information, which is the file content you readed, \
+             understand the purpose and consider the context for the next \
+             iteractions",
         )
     }
 }

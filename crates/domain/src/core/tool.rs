@@ -16,7 +16,8 @@ pub trait Tool {
     /// Is the tool parameter format instruction, to be passed as arguments.
     fn format_instruction(&self) -> Option<&'static str>;
 
-    /// The tool usage instruction, says how the tool should be used.
+    /// The tool usage instruction, says how the tool return should be used for
+    /// the next prompt.
     fn usage_instruction(&self) -> Option<&'static str>;
 }
 
