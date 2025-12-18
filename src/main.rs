@@ -4,7 +4,7 @@ use std::sync::Arc;
 use agente::prompt::prompt;
 use agente_application::tools::{read::ReadTool, write::WriteTool};
 use agente_domain::core::tool::Tool;
-use agente_infrastructure::file_system::FileSystem;
+use agente_infrastructure::adapters::file_system::FileSystem;
 
 #[tokio::main]
 async fn main() {

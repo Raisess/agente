@@ -18,7 +18,10 @@ pub fn prompt(tools: &HashMap<&str, Box<dyn Tool>>) -> String {
         .join(", ");
 
     format!(
-        "consider this tool set {tools_prompt}, now determine what to do for \
-         the next prompt"
+        "your actions should be based on the next described functions, you \
+         shouldn’t use any of pre built tools you have, consider this tool \
+         set: {tools_prompt}, return just like each tool described using this \
+         format: {{ \"tool\": \"<ToolName>\", \"result\": \"<ToolResult>\" \
+         }}, now determine what to do for the next prompt"
     )
 }
