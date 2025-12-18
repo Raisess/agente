@@ -1,10 +1,18 @@
-use futures::stream::Stream;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Error)]
 pub enum AgentError {
-    #[error("other error")]
-    Other,
+    #[error("Other error: {0}")]
+    Other(String),
+    #[error("The json response is not valid: {0}")]
+    FailedToParseResponse(String),
+    #[error("You run out of credits, please reload you model agent and retry.")]
+    OutOfCredits,
+    #[error(
+        "The server of the API provider is currently overloaded, try again \
+         later."
+    )]
+    ServicesOverloaded,
 }
 
 /// This is the Agent interface, it can represent a AI agent implementation,
@@ -12,8 +20,5 @@ pub enum AgentError {
 #[async_trait::async_trait]
 pub trait Agent {
     /// Send a prompt to the AI agente and wait for the result.
-    async fn ask(
-        &self,
-        prompt: &str,
-    ) -> Result<Box<dyn Stream<Item = String>>, AgentError>;
+    async fn ask(&self, prompt: &str) -> Result<String, AgentError>;
 }
