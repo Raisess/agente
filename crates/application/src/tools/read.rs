@@ -33,10 +33,7 @@ impl Tool for ReadTool {
     }
 
     fn format_instruction(&self) -> Option<&'static str> {
-        Some(
-            "provide the file path as the result like this: { \"path\": \
-             \"<file path>\" }",
-        )
+        Some("provide the file path as the result like this: [\"<file path>\"]")
     }
 
     fn usage_instruction(&self) -> Option<&'static str> {

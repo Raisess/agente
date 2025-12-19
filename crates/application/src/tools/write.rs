@@ -37,8 +37,8 @@ impl Tool for WriteTool {
 
     fn format_instruction(&self) -> Option<&'static str> {
         Some(
-            "provide the file path as the result like this: { \"path\": \
-             \"<file path>\", \"content\": \"<content to be writed>\" }",
+            "provide the file path as the result like this: [\"<file path>\", \
+             \"<content to be writed>\"]",
         )
     }
 
