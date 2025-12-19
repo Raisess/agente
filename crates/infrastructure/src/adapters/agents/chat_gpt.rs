@@ -40,16 +40,15 @@ impl ChatGPT {
     }
 }
 
+// @TODO: write a message history context
 #[async_trait::async_trait]
 impl Agent for ChatGPT {
-    async fn prepare(&mut self, base_prompt: &str) -> Result<(), AgentError> {
-        let response = self.send_message(base_prompt, None).await;
+    async fn feed(&mut self, info: &str) -> Result<String, AgentError> {
+        if info.trim().is_empty() {
+            return Ok(String::from("Nothing provided"));
+        }
 
-        // let text = response.unwrap().text().await.unwrap();
-        // println!("TEXT: {text}");
-        //
-        // return Ok(());
-
+        let response = self.send_message(info, None).await;
         match response {
             Ok(response) => {
                 let status = response.status().as_u16();
@@ -59,8 +58,8 @@ impl Agent for ChatGPT {
 
                 match response.json::<Response>().await {
                     Ok(data) => {
-                        self.previous_response_id = Some(data.id);
-                        Ok(())
+                        self.previous_response_id = Some(data.id.clone());
+                        Ok(extract_response_text(data))
                     }
                     Err(error) => Err(AgentError::FailedToParseResponse(
                         error.to_string(),
@@ -72,15 +71,13 @@ impl Agent for ChatGPT {
     }
 
     async fn ask(&mut self, prompt: &str) -> Result<Vec<Task>, AgentError> {
+        if prompt.trim().is_empty() {
+            return Ok(vec![]);
+        }
+
         let response = self
             .send_message(prompt, self.previous_response_id.clone())
             .await;
-
-        // let text = response.unwrap().text().await.unwrap();
-        // println!("TEXT: {text}");
-        //
-        // return Ok(vec![]);
-
         match response {
             Ok(response) => {
                 let status = response.status().as_u16();

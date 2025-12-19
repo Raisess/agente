@@ -24,8 +24,10 @@ pub enum AgentError {
 /// e.g.: ChatGPT, DeepSeek, etc.
 #[async_trait::async_trait]
 pub trait Agent {
-    /// Send the base prompt to feed the agent instructions set.
-    async fn prepare(&mut self, base_prompt: &str) -> Result<(), AgentError>;
+    /// Feed the agent with important info like file contents, summaries, etc
+    /// and update the previous message context. @NOTE: Use send the base
+    /// prompt to feed the agent instructions set.
+    async fn feed(&mut self, info: &str) -> Result<String, AgentError>;
     /// Send a prompt to the AI agente and wait for the result,
     /// for each ask iteration the usage should be updated.
     async fn ask(&mut self, prompt: &str) -> Result<Vec<Task>, AgentError>;

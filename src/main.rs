@@ -22,35 +22,47 @@ async fn main() {
     let api_key =
         std::env::var("CHAT_GPT_API_KEY").expect("CHAT_GPT_API_KEY to be set");
     let mut agent = ChatGPT::new(String::from(api_key));
-    agent.prepare(&base_prompt).await.expect("To not fail");
+    agent.feed(&base_prompt).await.expect("To not fail");
 
-    let execution_plan = agent
-        .ask("Read file ./src/main.rs")
-        .await
-        .expect("To not fail");
-    println!("RESPONSE: {execution_plan:#?}");
+    let mut feed_result = String::new();
+    loop {
+        let mut input = String::new();
+        println!("Prompt: ");
+        std::io::stdin()
+            .read_line(&mut input)
+            .expect("Should have a input");
 
-    for task in execution_plan {
-        println!("Summary: {}", task.summary());
+        let execution_plan =
+            agent.ask(&input.trim()).await.expect("To not fail");
+        println!("RESPONSE: {execution_plan:#?}");
 
-        let key = task.tool();
-        let tool = tools
-            .get(&key.as_str())
-            .expect(&format!("Tool not found: {key}"));
-        let result = tool.handle(task.arguments()).await;
-        println!("{key}: {result:#?}");
+        for task in execution_plan {
+            println!("Summary: {}", task.summary());
+
+            let key = task.tool();
+            let tool = tools
+                .get(&key.as_str())
+                .expect(&format!("Tool not found: {key}"));
+
+            let mut args = task.arguments();
+            if key == "Write" {
+                args[1] = feed_result.clone();
+            }
+
+            let result = tool.handle(args).await;
+            println!("{key}: {result:#?}");
+            match result {
+                Ok(mut message) => {
+                    if let Some(usage_instruction) = tool.usage_instruction() {
+                        message = format!("{usage_instruction}: {message}");
+                    }
+
+                    feed_result =
+                        agent.feed(&message).await.expect("To not fail");
+                    println!("FEED RESULT: {}", feed_result);
+                }
+                Err(error) => eprintln!("{}", error.message()),
+            }
+        }
     }
-
-    // let read = tools.get("Read").expect("Read tool to be ready");
-    // match read.handle(vec![String::from("src/main.rs")]).await {
-    // Ok(result) => {
-    // println!("{result:#?}");
-    // let write = tools.get("Write").expect("Write tool to be ready");
-    // write
-    // .handle(vec![String::from("copy.txt"), result])
-    // .await
-    // .expect("Failed to write text file");
-    // }
-    // Err(err) => eprintln!("{err:#?}"),
-    // };
 }
