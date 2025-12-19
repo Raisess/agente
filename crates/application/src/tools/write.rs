@@ -27,7 +27,7 @@ impl Tool for WriteTool {
             .expect("`content` must be provided as argument 1");
 
         self.writer.write(path, content.as_bytes())?;
-        Ok(String::new())
+        Ok(format!("Writed to file {path}!"))
     }
 
     fn context(&self) -> &'static str {
@@ -38,7 +38,8 @@ impl Tool for WriteTool {
     fn format_instruction(&self) -> Option<&'static str> {
         Some(
             "provide the file path as the result like this: [\"<file path>\", \
-             \"<content to be writed>\"]",
+             \"<content to be writed must be infered by the context of the \
+             last message>\"]",
         )
     }
 
