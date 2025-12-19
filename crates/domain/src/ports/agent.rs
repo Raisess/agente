@@ -8,8 +8,11 @@ pub enum AgentError {
     Other(String),
     #[error("The json response is not valid: {0}")]
     FailedToParseResponse(String),
-    #[error("You run out of credits, please reload you model agent and retry.")]
-    OutOfCredits,
+    #[error(
+        "You was rate limited or run out of credits, please reload you model \
+         agent and retry."
+    )]
+    Limited,
     #[error(
         "The server of the API provider is currently overloaded, try again \
          later."
@@ -22,7 +25,7 @@ pub enum AgentError {
 #[async_trait::async_trait]
 pub trait Agent {
     /// Send the base prompt to feed the agent instructions set.
-    async fn prepare(&self, base_prompt: &str) -> Result<(), AgentError>;
+    async fn prepare(&mut self, base_prompt: &str) -> Result<(), AgentError>;
     /// Send a prompt to the AI agente and wait for the result,
     /// for each ask iteration the usage should be updated.
     async fn ask(&mut self, prompt: &str) -> Result<Vec<Task>, AgentError>;

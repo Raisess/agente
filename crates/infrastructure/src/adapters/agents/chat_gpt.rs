@@ -7,6 +7,7 @@ use agente_domain::ports::agent::{Agent, AgentError};
 pub struct ChatGPT {
     api_key: String,
     client: reqwest::Client,
+    previous_response_id: Option<String>,
 }
 
 impl ChatGPT {
@@ -14,19 +15,26 @@ impl ChatGPT {
         Self {
             api_key,
             client: reqwest::Client::new(),
+            previous_response_id: None,
         }
     }
 
     async fn send_message(
         &self,
-        message: &str,
+        input: &str,
+        previous_response_id: Option<String>,
     ) -> Result<reqwest::Response, reqwest::Error> {
-        self
-            .client
+        let json = serde_json::json!({
+            "input": input,
+            "model": "gpt-3.5-turbo",
+            "previous_response_id": previous_response_id,
+        });
+
+        self.client
             .post("https://api.openai.com/v1/responses")
             .header("Content-Type", "application/json")
             .header("Authorization", format!("Bearer {}", self.api_key))
-            .json(&serde_json::json!({ "model": "gpt-3.5-turbo", "input": message }))
+            .json(&json)
             .send()
             .await
     }
@@ -34,8 +42,13 @@ impl ChatGPT {
 
 #[async_trait::async_trait]
 impl Agent for ChatGPT {
-    async fn prepare(&self, base_prompt: &str) -> Result<(), AgentError> {
-        let response = self.send_message(base_prompt).await;
+    async fn prepare(&mut self, base_prompt: &str) -> Result<(), AgentError> {
+        let response = self.send_message(base_prompt, None).await;
+
+        // let text = response.unwrap().text().await.unwrap();
+        // println!("TEXT: {text}");
+        //
+        // return Ok(());
 
         match response {
             Ok(response) => {
@@ -44,14 +57,29 @@ impl Agent for ChatGPT {
                     return Err(error);
                 }
 
-                Ok(())
+                match response.json::<Response>().await {
+                    Ok(data) => {
+                        self.previous_response_id = Some(data.id);
+                        Ok(())
+                    }
+                    Err(error) => Err(AgentError::FailedToParseResponse(
+                        error.to_string(),
+                    )),
+                }
             }
             Err(error) => Err(AgentError::Other(error.to_string())),
         }
     }
 
     async fn ask(&mut self, prompt: &str) -> Result<Vec<Task>, AgentError> {
-        let response = self.send_message(prompt).await;
+        let response = self
+            .send_message(prompt, self.previous_response_id.clone())
+            .await;
+
+        // let text = response.unwrap().text().await.unwrap();
+        // println!("TEXT: {text}");
+        //
+        // return Ok(vec![]);
 
         match response {
             Ok(response) => {
@@ -94,7 +122,7 @@ fn extract_response_text(data: Response) -> String {
 
 fn status_to_error(status: u16) -> Option<AgentError> {
     match status {
-        429 => Some(AgentError::OutOfCredits),
+        429 => Some(AgentError::Limited),
         503 => Some(AgentError::ServicesOverloaded),
         _ => None,
     }
@@ -103,40 +131,13 @@ fn status_to_error(status: u16) -> Option<AgentError> {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Response {
     pub id: String,
-    pub object: String,
-    #[serde(rename = "created_at")]
-    pub created_at: i64,
-    pub status: String,
-    pub error: Option<Value>,
-    #[serde(rename = "incomplete_details")]
-    pub incomplete_details: Option<Value>,
-    pub instructions: Option<Value>,
-    #[serde(rename = "max_output_tokens")]
-    pub max_output_tokens: Option<Value>,
     pub model: String,
     pub output: Vec<Output>,
-    #[serde(rename = "parallel_tool_calls")]
-    pub parallel_tool_calls: bool,
-    #[serde(rename = "previous_response_id")]
-    pub previous_response_id: Option<Value>,
-    pub reasoning: Reasoning,
-    pub store: bool,
-    pub temperature: f64,
-    pub text: TextFormat,
-    #[serde(rename = "tool_choice")]
-    pub tool_choice: String,
-    pub tools: Vec<Value>,
-    #[serde(rename = "top_p")]
-    pub top_p: f64,
-    pub truncation: String,
     pub usage: Usage,
-    pub user: Option<Value>,
-    pub metadata: Value,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Output {
-    pub r#type: String,
     pub id: String,
     pub status: String,
     pub role: String,
@@ -145,38 +146,13 @@ pub struct Output {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Content {
-    pub r#type: String,
     pub text: String,
     pub annotations: Vec<Value>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Reasoning {
-    pub effort: Option<Value>,
-    pub summary: Option<Value>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct TextFormat {
-    pub r#type: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
 pub struct Usage {
-    #[serde(rename = "input_tokens")]
     pub input_tokens: i64,
-    #[serde(rename = "input_tokens_details")]
-    pub input_tokens_details: TokenDetails,
-    #[serde(rename = "output_tokens")]
     pub output_tokens: i64,
-    #[serde(rename = "output_tokens_details")]
-    pub output_tokens_details: TokenDetails,
-    #[serde(rename = "total_tokens")]
     pub total_tokens: i64,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct TokenDetails {
-    #[serde(rename = "cached_tokens")]
-    pub cached_tokens: i64,
 }

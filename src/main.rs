@@ -31,6 +31,8 @@ async fn main() {
     println!("RESPONSE: {execution_plan:#?}");
 
     for task in execution_plan {
+        println!("Summary: {}", task.summary());
+
         let key = task.tool();
         let tool = tools
             .get(&key.as_str())
