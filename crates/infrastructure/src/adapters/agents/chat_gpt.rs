@@ -16,19 +16,42 @@ impl ChatGPT {
             client: reqwest::Client::new(),
         }
     }
-}
 
-#[async_trait::async_trait]
-impl Agent for ChatGPT {
-    async fn ask(&self, prompt: &str) -> Result<Vec<Task>, AgentError> {
-        let response = self
+    async fn send_message(
+        &self,
+        message: &str,
+    ) -> Result<reqwest::Response, reqwest::Error> {
+        self
             .client
             .post("https://api.openai.com/v1/responses")
             .header("Content-Type", "application/json")
             .header("Authorization", format!("Bearer {}", self.api_key))
-            .json(&serde_json::json!({ "model": "gpt-3.5-turbo", "input": prompt }))
+            .json(&serde_json::json!({ "model": "gpt-3.5-turbo", "input": message }))
             .send()
-            .await;
+            .await
+    }
+}
+
+#[async_trait::async_trait]
+impl Agent for ChatGPT {
+    async fn prepare(&self, base_prompt: &str) -> Result<(), AgentError> {
+        let response = self.send_message(base_prompt).await;
+
+        match response {
+            Ok(response) => {
+                let status = response.status().as_u16();
+                if let Some(error) = status_to_error(status) {
+                    return Err(error);
+                }
+
+                Ok(())
+            }
+            Err(error) => Err(AgentError::Other(error.to_string())),
+        }
+    }
+
+    async fn ask(&mut self, prompt: &str) -> Result<Vec<Task>, AgentError> {
+        let response = self.send_message(prompt).await;
 
         match response {
             Ok(response) => {
