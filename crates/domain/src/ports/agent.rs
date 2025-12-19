@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use crate::core::models::task::Task;
+
 #[derive(Clone, Debug, Error)]
 pub enum AgentError {
     #[error("Other error: {0}")]
@@ -14,11 +16,12 @@ pub enum AgentError {
     )]
     ServicesOverloaded,
 }
+use std::fmt::Debug;
 
 /// This is the Agent interface, it can represent a AI agent implementation,
 /// e.g.: ChatGPT, DeepSeek, etc.
 #[async_trait::async_trait]
 pub trait Agent {
     /// Send a prompt to the AI agente and wait for the result.
-    async fn ask(&self, prompt: &str) -> Result<String, AgentError>;
+    async fn ask(&self, prompt: &str) -> Result<Vec<Task>, AgentError>;
 }

@@ -23,7 +23,7 @@ async fn main() {
         std::env::var("CHAT_GPT_API_KEY").expect("CHAT_GPT_API_KEY to be set");
     let agent = ChatGPT::new(String::from(api_key));
     let response = agent.ask(&base_prompt).await.expect("To not fail");
-    println!("RESPONSE: {response}");
+    println!("RESPONSE: {response:#?}");
 
     // let read = tools.get("Read").expect("Read tool to be ready");
     // match read.handle(vec![String::from("src/main.rs")]).await {

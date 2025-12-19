@@ -7,5 +7,5 @@ edition = "2024"
 agente-domain = { path = "../domain" }
 async-trait = { workspace = true }
 reqwest = { version = "0.12.26", features = ["json"] }
-serde = "1.0.228"
-serde_json = "1.0.145"
+serde = { workspace = true }
+serde_json = { workspace = true }

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use agente_domain::core::models::task::Task;
 use agente_domain::ports::agent::{Agent, AgentError};
 
 pub struct ChatGPT {
@@ -19,7 +20,7 @@ impl ChatGPT {
 
 #[async_trait::async_trait]
 impl Agent for ChatGPT {
-    async fn ask(&self, prompt: &str) -> Result<String, AgentError> {
+    async fn ask(&self, prompt: &str) -> Result<Vec<Task>, AgentError> {
         let response = self
             .client
             .post("https://api.openai.com/v1/responses")
@@ -37,7 +38,16 @@ impl Agent for ChatGPT {
                 }
 
                 match response.json::<Response>().await {
-                    Ok(data) => Ok(extract_response_text(data)),
+                    Ok(data) => {
+                        let text = extract_response_text(data);
+                        let tasks = serde_json::from_str::<Vec<Task>>(&text)
+                            .expect(&format!(
+                                "To deserialize to task model, provided text: \
+                                 {text}"
+                            ));
+
+                        Ok(tasks)
+                    }
                     Err(error) => Err(AgentError::FailedToParseResponse(
                         error.to_string(),
                     )),
@@ -49,9 +59,14 @@ impl Agent for ChatGPT {
 }
 
 fn extract_response_text(data: Response) -> String {
-    let text = &data.output.get(0).unwrap().content.get(0).unwrap().text;
-
-    text.clone()
+    data.output
+        .get(0)
+        .unwrap()
+        .content
+        .get(0)
+        .unwrap()
+        .text
+        .clone()
 }
 
 fn status_to_error(status: u16) -> Option<AgentError> {

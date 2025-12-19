@@ -7,7 +7,7 @@ pub fn prompt(tools: &HashMap<&str, Box<dyn Tool>>) -> String {
         .iter()
         .map(|(name, tool)| {
             format!(
-                "{name}(context: \"{}\", reponse format: \"{}\")",
+                "{name}(context: \"{}\", arguments format: \"{}\")",
                 tool.context(),
                 tool.format_instruction().unwrap_or("")
             )
@@ -21,7 +21,7 @@ pub fn prompt(tools: &HashMap<&str, Box<dyn Tool>>) -> String {
          set: {tools_prompt}, when the prompt matches one of more tool \
          requirement return just like each tool described using this format: \
          [{{ \"tool\": \"<ToolName>\", \"summary\": \"<summarize what you \
-         gonna do>\", \"result\": <ToolResult> }}], now determine what to do \
-         for the next prompt"
+         gonna do>\", \"arguments\": <ToolArguments> }}], now determine what \
+         to do for the next prompt"
     )
 }
