@@ -7,8 +7,10 @@ pub trait Tool {
     ///
     /// @param argument - Is a text provided from the context that should be
     /// handled how the instruction says.
-    async fn handle(&self, arguments: Vec<String>)
-    -> Result<String, ToolError>;
+    async fn handle(
+        &self,
+        arguments: Vec<String>,
+    ) -> Result<Option<String>, ToolError>;
 
     /// Is the tool description, says when the tool should be used.
     fn context(&self) -> &'static str;

@@ -18,7 +18,7 @@ impl Tool for WriteTool {
     async fn handle(
         &self,
         arguments: Vec<String>,
-    ) -> Result<String, ToolError> {
+    ) -> Result<Option<String>, ToolError> {
         let path = arguments
             .get(0)
             .expect("`path` must be provided as argument 0");
@@ -27,7 +27,7 @@ impl Tool for WriteTool {
             .expect("`content` must be provided as argument 1");
 
         self.writer.write(path, content.as_bytes())?;
-        Ok(format!("Writed to file {path}!"))
+        Ok(None)
     }
 
     fn context(&self) -> &'static str {

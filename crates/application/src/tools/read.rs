@@ -18,13 +18,13 @@ impl Tool for ReadTool {
     async fn handle(
         &self,
         arguments: Vec<String>,
-    ) -> Result<String, ToolError> {
+    ) -> Result<Option<String>, ToolError> {
         let path = arguments
             .get(0)
             .expect("`path` must be provided as argument 0");
 
         let content = self.reader.read(path)?;
-        Ok(content)
+        Ok(Some(content))
     }
 
     fn context(&self) -> &'static str {
@@ -78,7 +78,7 @@ mod tests {
             .handle(vec![String::from("file_path")])
             .await
             .expect("Failed to read");
-        assert_eq!(result, "file_path:some text");
+        assert_eq!(result, Some(String::from("file_path:some text")));
     }
 
     struct FailReaderMock;

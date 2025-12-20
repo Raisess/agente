@@ -71,25 +71,28 @@ impl Runtime {
                 let result = tool.handle(args).await;
                 info!(name: "tool_result", "{key}: {result:#?}");
                 match result {
-                    Ok(mut message) => {
-                        if let Some(usage_instruction) =
-                            tool.usage_instruction()
-                        {
-                            message = format!("{usage_instruction}: {message}");
-                        }
+                    Ok(message) => {
+                        if let Some(mut message) = message {
+                            if let Some(usage_instruction) =
+                                tool.usage_instruction()
+                            {
+                                message =
+                                    format!("{usage_instruction}: {message}");
+                            }
 
-                        feed_result = self
-                            .agent
-                            .feed(MessageRequest {
-                                previous_message_id: None,
-                                prompt: message,
-                            })
-                            .await
-                            .expect(
-                                "Failed to feed agent with tool result \
-                                 information.",
-                            );
-                        info!(name: "feed_result", "{feed_result:#?}");
+                            feed_result = self
+                                .agent
+                                .feed(MessageRequest {
+                                    previous_message_id: None,
+                                    prompt: message,
+                                })
+                                .await
+                                .expect(
+                                    "Failed to feed agent with tool result \
+                                     information.",
+                                );
+                            info!(name: "feed_result", "{feed_result:#?}");
+                        }
                     }
                     Err(error) => error!("{}", error.message()),
                 }
