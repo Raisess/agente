@@ -9,7 +9,7 @@ pub fn prompt(tools: &HashMap<String, Box<dyn Tool>>) -> String {
             format!(
                 "{name}(context: \"{}\", arguments format: \"{}\")",
                 tool.context(),
-                tool.format_instruction().unwrap_or("")
+                tool.format_instruction().unwrap_or("[]")
             )
         })
         .collect::<Vec<String>>()
@@ -21,7 +21,8 @@ pub fn prompt(tools: &HashMap<String, Box<dyn Tool>>) -> String {
          set: {tools_prompt}, when the prompt matches one of more tool \
          requirement return just like each tool described using only this \
          format: [{{ \"tool\": \"<ToolName>\", \"summary\": \"<summarize what \
-         you gonna do>\", \"arguments\": <ToolArguments> }}] in plain json \
-         array, now determine what to do for the next prompt"
+         you gonna do>\", \"arguments\": <ToolArguments> }}] always in plain \
+         json array and never using the markdown notation, now determine what \
+         to do for the next prompt"
     )
 }

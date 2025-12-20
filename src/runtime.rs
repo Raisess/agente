@@ -52,8 +52,6 @@ impl Runtime {
             info!(name: "response", "{execution_plan:#?}");
 
             for task in execution_plan {
-                info!(name: "summary", "{}", task.summary());
-
                 let key = task.tool();
                 let tool = self
                     .tools
@@ -71,6 +69,9 @@ impl Runtime {
                 let result = tool.handle(args).await;
                 info!(name: "tool_result", "{key}: {result:#?}");
                 match result {
+                    // @TODO: there should be two types of message, one for
+                    // feeding and another only for showing up, create a enum a
+                    // process it.
                     Ok(message) => {
                         if let Some(mut message) = message {
                             if let Some(usage_instruction) =

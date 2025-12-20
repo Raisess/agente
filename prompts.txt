@@ -1,0 +1,1 @@
+- read the file ./src/prompt.rs and write a summary to the file ./prompt_summary.md
