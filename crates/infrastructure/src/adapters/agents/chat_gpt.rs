@@ -2,12 +2,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use agente_domain::core::models::task::Task;
-use agente_domain::ports::agent::{Agent, AgentError};
+use agente_domain::ports::agent::{
+    Agent, AgentError, FeedResponse, MessageRequest,
+};
 
 pub struct ChatGPT {
     api_key: String,
     client: reqwest::Client,
-    previous_response_id: Option<String>,
 }
 
 impl ChatGPT {
@@ -15,7 +16,6 @@ impl ChatGPT {
         Self {
             api_key,
             client: reqwest::Client::new(),
-            previous_response_id: None,
         }
     }
 
@@ -40,15 +40,22 @@ impl ChatGPT {
     }
 }
 
-// @TODO: write a message history context
 #[async_trait::async_trait]
 impl Agent for ChatGPT {
-    async fn feed(&mut self, info: &str) -> Result<String, AgentError> {
-        if info.trim().is_empty() {
-            return Ok(String::from("Nothing provided"));
+    async fn feed(
+        &mut self,
+        message: MessageRequest,
+    ) -> Result<FeedResponse, AgentError> {
+        if message.prompt.is_empty() {
+            return Ok(FeedResponse {
+                message_id: None,
+                content: String::from("Nothing provided"),
+            });
         }
 
-        let response = self.send_message(info, None).await;
+        let response = self
+            .send_message(&message.prompt, message.previous_message_id)
+            .await;
         match response {
             Ok(response) => {
                 let status = response.status().as_u16();
@@ -58,8 +65,12 @@ impl Agent for ChatGPT {
 
                 match response.json::<Response>().await {
                     Ok(data) => {
-                        self.previous_response_id = Some(data.id.clone());
-                        Ok(extract_response_text(data))
+                        let message_id = Some(data.id.clone());
+                        let content = extract_response_text(data);
+                        Ok(FeedResponse {
+                            message_id,
+                            content,
+                        })
                     }
                     Err(error) => Err(AgentError::FailedToParseResponse(
                         error.to_string(),
@@ -70,13 +81,16 @@ impl Agent for ChatGPT {
         }
     }
 
-    async fn ask(&mut self, prompt: &str) -> Result<Vec<Task>, AgentError> {
-        if prompt.trim().is_empty() {
+    async fn ask(
+        &mut self,
+        message: MessageRequest,
+    ) -> Result<Vec<Task>, AgentError> {
+        if message.prompt.is_empty() {
             return Ok(vec![]);
         }
 
         let response = self
-            .send_message(prompt, self.previous_response_id.clone())
+            .send_message(&message.prompt, message.previous_message_id)
             .await;
         match response {
             Ok(response) => {
