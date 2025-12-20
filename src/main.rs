@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use tracing_subscriber;
+use tracing_subscriber::EnvFilter;
+
 use agente::runtime::Runtime;
 use agente_application::tools::{read::ReadTool, write::WriteTool};
 use agente_domain::core::tool::Tool;
@@ -9,6 +12,10 @@ use agente_infrastructure::adapters::file_system::FileSystem;
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
+
     let fs = Arc::new(FileSystem::default());
 
     let mut tools = HashMap::<String, Box<dyn Tool>>::new();

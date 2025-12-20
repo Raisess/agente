@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use tracing::{error, info};
+
 use agente_domain::core::tool::Tool;
 use agente_domain::ports::agent::{Agent, FeedResponse, MessageRequest};
 
@@ -19,6 +21,7 @@ impl Runtime {
     }
 
     pub async fn run(&mut self) -> () {
+        // @FIXME: this should only initialize if the user sends a prompt
         let initial_feed_response = self
             .agent
             .feed(MessageRequest {
@@ -46,10 +49,10 @@ impl Runtime {
                 })
                 .await
                 .expect("Failed to ask the agent for the execution plan.");
-            println!("RESPONSE: {execution_plan:#?}");
+            info!(name: "response", "{execution_plan:#?}");
 
             for task in execution_plan {
-                println!("Summary: {}", task.summary());
+                info!(name: "summary", "{}", task.summary());
 
                 let key = task.tool();
                 let tool = self
@@ -66,7 +69,7 @@ impl Runtime {
                 }
 
                 let result = tool.handle(args).await;
-                println!("{key}: {result:#?}");
+                info!(name: "tool_result", "{key}: {result:#?}");
                 match result {
                     Ok(mut message) => {
                         if let Some(usage_instruction) =
@@ -86,9 +89,9 @@ impl Runtime {
                                 "Failed to feed agent with tool result \
                                  information.",
                             );
-                        println!("FEED RESULT: {:#?}", feed_result);
+                        info!(name: "feed_result", "{feed_result:#?}");
                     }
-                    Err(error) => eprintln!("{}", error.message()),
+                    Err(error) => error!("{}", error.message()),
                 }
             }
         }

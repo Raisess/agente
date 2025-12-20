@@ -20,3 +20,5 @@ agente-domain = { path = "crates/domain" }
 agente-infrastructure = { path = "crates/infrastructure" }
 async-trait = { workspace = true }
 tokio = { workspace = true }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
