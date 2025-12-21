@@ -54,13 +54,9 @@ impl Runtime {
                     .get(&key)
                     .expect(&format!("Tool not found: {key}"));
 
-                // @FIXME: improve this hardcoded ugly thing here
                 let mut args = task.arguments();
-                if key == "Write"
-                    && args.get(1).is_some_and(|value| value == "<NONE>")
-                {
-                    args[1] = feed_result.content.clone();
-                }
+                args.push(feed_result.content.clone());
+                feed_result = FeedResponse::default();
 
                 let result = tool.handle(args).await;
                 info!(name: "tool_result", "{key}: {result:#?}");
@@ -84,6 +80,7 @@ impl Runtime {
                                 role: MessageRole::User,
                                 content: message,
                             };
+                            info!(name: "feed_message", "{feed_message:#?}");
                             feed_result = self
                                 .agent
                                 .feed(&vec![feed_message])

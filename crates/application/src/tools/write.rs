@@ -25,8 +25,17 @@ impl Tool for WriteTool {
         let content = arguments
             .get(1)
             .expect("`content` must be provided as argument 1");
+        // @NOTE: inferred content is a new argument passed from the execution
+        // context.
+        let inferred_content = arguments.get(2);
 
-        self.writer.write(path, content.as_bytes())?;
+        let value = if inferred_content.is_some_and(|ic| !ic.is_empty()) {
+            inferred_content.unwrap()
+        } else {
+            content
+        };
+
+        self.writer.write(path, value.as_bytes())?;
         Ok(None)
     }
 

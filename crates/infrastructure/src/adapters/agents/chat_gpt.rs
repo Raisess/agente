@@ -63,12 +63,8 @@ impl Agent for ChatGPT {
 
                 match response.json::<Response>().await {
                     Ok(data) => {
-                        let message_id = Some(data.id.clone());
                         let content = extract_response_text(data);
-                        Ok(FeedResponse {
-                            message_id,
-                            content,
-                        })
+                        Ok(FeedResponse { content })
                     }
                     Err(error) => Err(AgentError::FailedToParseResponse(
                         error.to_string(),

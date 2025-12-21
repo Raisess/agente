@@ -43,7 +43,6 @@ pub struct MessageRequest {
 
 #[derive(Debug, Default)]
 pub struct FeedResponse {
-    pub message_id: Option<String>,
     pub content: String,
 }
 
