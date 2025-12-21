@@ -28,7 +28,6 @@ impl Runtime {
             content: prompt(&self.tools),
         };
 
-        let mut feed_result = FeedResponse::default();
         loop {
             let mut input = String::new();
             println!("Prompt: ");
@@ -47,6 +46,15 @@ impl Runtime {
                 .expect("Failed to ask the agent for the execution plan");
             info!(name: "response", "{execution_plan:#?}");
 
+            let feed_context = &mut execution_plan
+                .iter()
+                .map(|t| MessageRequest {
+                    role: MessageRole::User,
+                    content: t.summary(),
+                })
+                .collect::<Vec<_>>();
+
+            let mut last_feed_response = FeedResponse::default();
             for task in execution_plan {
                 let key = task.tool();
                 let tool = self
@@ -55,41 +63,31 @@ impl Runtime {
                     .expect(&format!("Tool not found: {key}"));
 
                 let mut args = task.arguments();
-                args.push(feed_result.content.clone());
-                feed_result = FeedResponse::default();
+                args.push(last_feed_response.content.clone());
+                last_feed_response = FeedResponse::default();
 
-                let result = tool.handle(args).await;
-                info!(name: "tool_result", "{key}: {result:#?}");
-                match result {
+                match tool.handle(args).await {
                     // @TODO: there should be two types of message, one for
                     // feeding and another only for showing up, create a enum a
                     // process it.
-                    Ok(message) => {
-                        if let Some(mut message) = message {
-                            if let Some(usage_instruction) =
-                                tool.usage_instruction()
-                            {
-                                // @TODO: describe better what to do with the
-                                // result message
-                                message =
-                                    format!("{usage_instruction}: {message}");
+                    Ok(result) => {
+                        info!(name: "tool_result", "{key}: {result:#?}");
+                        if let Some(mut message) = result {
+                            if let Some(usage) = tool.usage_instruction() {
+                                message = format!("{usage}: {message}");
                             }
 
-                            // @TODO: a feed message context for execution plan
-                            let feed_message = MessageRequest {
+                            feed_context.push(MessageRequest {
                                 role: MessageRole::User,
                                 content: message,
-                            };
-                            info!(name: "feed_message", "{feed_message:#?}");
-                            feed_result = self
-                                .agent
-                                .feed(&vec![feed_message])
-                                .await
-                                .expect(
+                            });
+                            info!(name: "feed_context", "{feed_context:#?}");
+                            last_feed_response =
+                                self.agent.feed(&feed_context).await.expect(
                                     "Failed to feed agent with tool result \
                                      information",
                                 );
-                            info!(name: "feed_result", "{feed_result:#?}");
+                            info!(name: "feed_response", "{last_feed_response:#?}");
                         }
                     }
                     Err(error) => error!("{}", error.message()),
