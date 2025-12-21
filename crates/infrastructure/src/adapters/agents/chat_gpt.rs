@@ -21,13 +21,20 @@ impl ChatGPT {
 
     async fn send_message(
         &self,
-        input: &str,
-        previous_response_id: Option<String>,
+        messages: &Vec<MessageRequest>,
     ) -> Result<reqwest::Response, reqwest::Error> {
+        let input = messages
+            .iter()
+            .map(|message| {
+                serde_json::json!({
+                  "role": message.role.to_string(),
+                  "content": message.content
+                })
+            })
+            .collect::<Vec<_>>();
         let json = serde_json::json!({
             "input": input,
             "model": "gpt-3.5-turbo",
-            "previous_response_id": previous_response_id,
         });
 
         self.client
@@ -44,18 +51,9 @@ impl ChatGPT {
 impl Agent for ChatGPT {
     async fn feed(
         &mut self,
-        message: MessageRequest,
+        messages: &Vec<MessageRequest>,
     ) -> Result<FeedResponse, AgentError> {
-        if message.prompt.is_empty() {
-            return Ok(FeedResponse {
-                message_id: None,
-                content: String::from("Nothing provided"),
-            });
-        }
-
-        let response = self
-            .send_message(&message.prompt, message.previous_message_id)
-            .await;
+        let response = self.send_message(messages).await;
         match response {
             Ok(response) => {
                 let status = response.status().as_u16();
@@ -83,15 +81,9 @@ impl Agent for ChatGPT {
 
     async fn ask(
         &mut self,
-        message: MessageRequest,
+        messages: &Vec<MessageRequest>,
     ) -> Result<Vec<Task>, AgentError> {
-        if message.prompt.is_empty() {
-            return Ok(vec![]);
-        }
-
-        let response = self
-            .send_message(&message.prompt, message.previous_message_id)
-            .await;
+        let response = self.send_message(messages).await;
         match response {
             Ok(response) => {
                 let status = response.status().as_u16();

@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use tracing::{error, info};
 
 use agente_domain::core::tool::Tool;
-use agente_domain::ports::agent::{Agent, FeedResponse, MessageRequest};
+use agente_domain::ports::agent::{
+    Agent, FeedResponse, MessageRequest, MessageRole,
+};
 
 use crate::prompt::prompt;
 
@@ -21,15 +23,10 @@ impl Runtime {
     }
 
     pub async fn run(&mut self) -> () {
-        // @FIXME: this should only initialize if the user sends a prompt
-        let initial_feed_response = self
-            .agent
-            .feed(MessageRequest {
-                previous_message_id: None,
-                prompt: prompt(&self.tools),
-            })
-            .await
-            .expect("Failed to setup agent initial prompt.");
+        let tools_context_message = MessageRequest {
+            role: MessageRole::System,
+            content: prompt(&self.tools),
+        };
 
         let mut feed_result = FeedResponse::default();
         loop {
@@ -39,16 +36,15 @@ impl Runtime {
                 .read_line(&mut input)
                 .expect("Should have a input");
 
+            let message = MessageRequest {
+                role: MessageRole::User,
+                content: input,
+            };
             let execution_plan = self
                 .agent
-                .ask(MessageRequest {
-                    previous_message_id: initial_feed_response
-                        .message_id
-                        .clone(),
-                    prompt: input.trim().to_string(),
-                })
+                .ask(&vec![tools_context_message.clone(), message])
                 .await
-                .expect("Failed to ask the agent for the execution plan.");
+                .expect("Failed to ask the agent for the execution plan");
             info!(name: "response", "{execution_plan:#?}");
 
             for task in execution_plan {
@@ -77,20 +73,24 @@ impl Runtime {
                             if let Some(usage_instruction) =
                                 tool.usage_instruction()
                             {
+                                // @TODO: describe better what to do with the
+                                // result message
                                 message =
                                     format!("{usage_instruction}: {message}");
                             }
 
+                            // @TODO: a feed message context for execution plan
+                            let feed_message = MessageRequest {
+                                role: MessageRole::User,
+                                content: message,
+                            };
                             feed_result = self
                                 .agent
-                                .feed(MessageRequest {
-                                    previous_message_id: None,
-                                    prompt: message,
-                                })
+                                .feed(&vec![feed_message])
                                 .await
                                 .expect(
                                     "Failed to feed agent with tool result \
-                                     information.",
+                                     information",
                                 );
                             info!(name: "feed_result", "{feed_result:#?}");
                         }

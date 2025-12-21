@@ -20,10 +20,25 @@ pub enum AgentError {
     ServicesOverloaded,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub enum MessageRole {
+    System,
+    User,
+}
+
+impl ToString for MessageRole {
+    fn to_string(&self) -> String {
+        String::from(match self {
+            MessageRole::System => "system",
+            MessageRole::User => "user",
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct MessageRequest {
-    pub previous_message_id: Option<String>,
-    pub prompt: String,
+    pub role: MessageRole,
+    pub content: String,
 }
 
 #[derive(Debug, Default)]
@@ -41,12 +56,12 @@ pub trait Agent {
     /// @NOTE: Use send the base prompt to feed the agent instructions set.
     async fn feed(
         &mut self,
-        message: MessageRequest,
+        messages: &Vec<MessageRequest>,
     ) -> Result<FeedResponse, AgentError>;
     /// Send a prompt to the AI agente and wait for the result.
     /// @NOTE: For each ask iteration the usage should be updated.
     async fn ask(
         &mut self,
-        message: MessageRequest,
+        messages: &Vec<MessageRequest>,
     ) -> Result<Vec<Task>, AgentError>;
 }
