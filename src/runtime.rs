@@ -7,7 +7,7 @@ use agente_domain::ports::agent::{
     Agent, FeedResponse, MessageRequest, MessageRole,
 };
 
-use crate::prompt::prompt;
+use crate::prompt::system_prompt;
 
 pub struct Runtime {
     agent: Box<dyn Agent>,
@@ -27,7 +27,7 @@ impl Runtime {
         let mut message_history = Vec::<MessageRequest>::new();
         message_history.push(MessageRequest {
             role: MessageRole::System,
-            content: prompt(&self.tools),
+            content: system_prompt(&self.tools),
         });
 
         loop {
@@ -41,6 +41,7 @@ impl Runtime {
                 role: MessageRole::User,
                 content: input,
             });
+            println!("{message_history:#?}");
             let execution_plan = self
                 .agent
                 .ask(&message_history)
@@ -48,16 +49,18 @@ impl Runtime {
                 .expect("Failed to ask the agent for the execution plan");
             info!(name: "response", "{execution_plan:#?}");
 
-            // @FIXME: improve this
-            message_history.append(
-                &mut execution_plan
+            let execution_summary = format!(
+                "This is the execution plan: {}",
+                execution_plan
                     .iter()
-                    .map(|t| MessageRequest {
-                        role: MessageRole::User,
-                        content: t.summary(),
-                    })
-                    .collect::<Vec<_>>(),
+                    .map(|task| task.summary())
+                    .collect::<Vec<_>>()
+                    .join(" -> ")
             );
+            message_history.push(MessageRequest {
+                role: MessageRole::User,
+                content: execution_summary,
+            });
 
             let mut last_feed_response = FeedResponse::default();
             for task in execution_plan {

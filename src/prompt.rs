@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use agente_domain::core::tool::Tool;
 
-pub fn prompt(tools: &HashMap<String, Box<dyn Tool>>) -> String {
+pub fn system_prompt(tools: &HashMap<String, Box<dyn Tool>>) -> String {
     let tools_prompt = tools
         .iter()
         .map(|(name, tool)| {
