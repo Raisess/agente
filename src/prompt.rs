@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use agente_domain::core::tool::Tool;
+use agente_domain::ports::agent::MessageRequest;
 
 pub fn system_prompt(tools: &HashMap<String, Box<dyn Tool>>) -> String {
     let tools_prompt = tools
@@ -12,7 +13,7 @@ pub fn system_prompt(tools: &HashMap<String, Box<dyn Tool>>) -> String {
                 tool.format_instruction().unwrap_or("[]")
             )
         })
-        .collect::<Vec<String>>()
+        .collect::<Vec<_>>()
         .join(", ");
 
     format!(
@@ -25,4 +26,16 @@ pub fn system_prompt(tools: &HashMap<String, Box<dyn Tool>>) -> String {
          json array and never using the markdown notation, now determine what \
          to do for the next prompt"
     )
+}
+
+pub fn summarize_messages_prompt(messages: &Vec<MessageRequest>) -> String {
+    let messages_prompt = messages
+        .iter()
+        .map(|MessageRequest { role, content }| {
+            format!("Role: {role}, Content: {content}")
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    format!("write a summary for this message list: {messages_prompt}")
 }

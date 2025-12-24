@@ -3,10 +3,9 @@ use std::collections::HashMap;
 use tracing::{error, info};
 
 use agente_domain::core::tool::Tool;
-use agente_domain::ports::agent::{
-    Agent, FeedResponse, MessageRequest, MessageRole,
-};
+use agente_domain::ports::agent::Agent;
 
+use crate::context::Context;
 use crate::prompt::system_prompt;
 
 pub struct Runtime {
@@ -23,12 +22,7 @@ impl Runtime {
     }
 
     pub async fn run(&mut self) -> () {
-        // @TODO: summarize message history time to time
-        let mut message_history = Vec::<MessageRequest>::new();
-        message_history.push(MessageRequest {
-            role: MessageRole::System,
-            content: system_prompt(&self.tools),
-        });
+        let mut context = Context::init(system_prompt(&self.tools));
 
         loop {
             let mut input = String::new();
@@ -37,32 +31,17 @@ impl Runtime {
                 .read_line(&mut input)
                 .expect("Should have a input");
 
-            message_history.push(MessageRequest {
-                role: MessageRole::User,
-                content: input,
-            });
-            println!("{message_history:#?}");
-            let execution_plan = self
-                .agent
-                .ask(&message_history)
+            context
+                .summarize(&mut self.agent)
+                .await
+                .expect("Failed to summarize messages");
+
+            let execution_plan = context
+                .ask(&mut self.agent, input)
                 .await
                 .expect("Failed to ask the agent for the execution plan");
-            info!(name: "response", "{execution_plan:#?}");
 
-            let execution_summary = format!(
-                "This is the execution plan: {}",
-                execution_plan
-                    .iter()
-                    .map(|task| task.summary())
-                    .collect::<Vec<_>>()
-                    .join(" -> ")
-            );
-            message_history.push(MessageRequest {
-                role: MessageRole::User,
-                content: execution_summary,
-            });
-
-            let mut last_feed_response = FeedResponse::default();
+            let mut last_feed_response = String::new();
             for task in execution_plan {
                 let key = task.tool();
                 let tool = self
@@ -71,8 +50,8 @@ impl Runtime {
                     .expect(&format!("Tool not found: {key}"));
 
                 let mut args = task.arguments();
-                args.push(last_feed_response.content.clone());
-                last_feed_response = FeedResponse::default();
+                args.push(last_feed_response);
+                last_feed_response = String::new();
 
                 match tool.handle(args).await {
                     // @TODO: there should be two types of message, one for
@@ -85,26 +64,13 @@ impl Runtime {
                                 message = format!("{usage}: {message}");
                             }
 
-                            message_history.push(MessageRequest {
-                                role: MessageRole::User,
-                                content: message,
-                            });
-
-                            info!(name: "message_history", "{message_history:#?}");
-                            last_feed_response = self
-                                .agent
-                                .feed(&message_history.clone().split_off(1))
+                            last_feed_response = context
+                                .feed(&mut self.agent, message)
                                 .await
                                 .expect(
                                     "Failed to feed agent with tool result \
                                      information",
                                 );
-                            info!(name: "feed_response", "{last_feed_response:#?}");
-
-                            // message_history.push(MessageRequest {
-                            // role: MessageRole::Assistant,
-                            // content: format!("Done: {}", task.summary()),
-                            // });
                         }
                     }
                     Err(error) => error!("{}", error.message()),
