@@ -31,11 +31,6 @@ impl Runtime {
                 .read_line(&mut input)
                 .expect("Should have a input");
 
-            context
-                .summarize(&mut self.agent)
-                .await
-                .expect("Failed to summarize messages");
-
             let execution_plan = context
                 .ask(&mut self.agent, input)
                 .await
@@ -57,6 +52,7 @@ impl Runtime {
                     // @TODO: there should be two types of message, one for
                     // feeding and another only for showing up, create a enum a
                     // process it.
+                    // This will prevent executing twice for talk tool.
                     Ok(result) => {
                         info!(name: "tool_result", "{key}: {result:#?}");
                         if let Some(mut message) = result {
@@ -76,6 +72,11 @@ impl Runtime {
                     Err(error) => error!("{}", error.message()),
                 }
             }
+
+            context
+                .summarize(&mut self.agent)
+                .await
+                .expect("Failed to summarize messages");
         }
     }
 }
