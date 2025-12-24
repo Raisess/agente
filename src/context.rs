@@ -28,13 +28,18 @@ impl Context {
         agent: &mut Box<dyn Agent>,
         prompt: String,
     ) -> Result<Vec<Task>, AgentError> {
-        self.messages.push(MessageRequest {
+        // @NOTE: copys the messages and keep the user prompt temporaly because
+        // the context will only keep the execution summary information.
+        let mut execution_prompt = self.messages.clone();
+        execution_prompt.push(MessageRequest {
             role: MessageRole::User,
             content: prompt,
         });
+        let execution_plan = agent.ask(execution_prompt).await?;
+        info!(name: "execution_plan", "{:#?}", execution_plan);
 
-        let execution_plan = agent.ask(&self.messages).await?;
-
+        // @NOTE: this information will be used for the feed phase in case a
+        // task depends on another, the agent should know it.
         let execution_summary = format!(
             "This is the execution plan: {}",
             execution_plan
@@ -62,7 +67,7 @@ impl Context {
             content,
         });
 
-        let result = agent.feed(&self.messages.clone().split_off(1)).await?;
+        let result = agent.feed(self.messages.clone().split_off(1)).await?;
         info!(name: "feed_response", "{result:#?}");
         Ok(result.content)
     }
@@ -74,11 +79,12 @@ impl Context {
         if self.messages.len() >= MAX_MESSAGES {
             info!("summarizing...");
             let messages = self.messages.drain(1..).collect::<Vec<_>>();
-            let message_request = MessageRequest {
-                role: MessageRole::User,
-                content: summarize_messages_prompt(&messages),
-            };
-            let result = agent.feed(&vec![message_request]).await?;
+            let result = agent
+                .feed(vec![MessageRequest {
+                    role: MessageRole::User,
+                    content: summarize_messages_prompt(messages),
+                }])
+                .await?;
 
             self.messages.push(MessageRequest {
                 role: MessageRole::System,

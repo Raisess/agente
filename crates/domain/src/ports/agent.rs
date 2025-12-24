@@ -11,13 +11,13 @@ pub trait Agent {
     /// @NOTE: Use send the base prompt to feed the agent instructions set.
     async fn feed(
         &mut self,
-        messages: &Vec<MessageRequest>,
+        messages: Vec<MessageRequest>,
     ) -> Result<FeedResponse, AgentError>;
     /// Send a prompt to the AI agente and wait for the result.
     /// @NOTE: For each ask iteration the usage should be updated.
     async fn ask(
         &mut self,
-        messages: &Vec<MessageRequest>,
+        messages: Vec<MessageRequest>,
     ) -> Result<Vec<Task>, AgentError>;
 }
 

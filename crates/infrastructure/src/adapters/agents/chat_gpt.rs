@@ -21,7 +21,7 @@ impl ChatGPT {
 
     async fn send_message(
         &self,
-        messages: &Vec<MessageRequest>,
+        messages: Vec<MessageRequest>,
     ) -> Result<reqwest::Response, reqwest::Error> {
         let input = messages
             .iter()
@@ -51,7 +51,7 @@ impl ChatGPT {
 impl Agent for ChatGPT {
     async fn feed(
         &mut self,
-        messages: &Vec<MessageRequest>,
+        messages: Vec<MessageRequest>,
     ) -> Result<FeedResponse, AgentError> {
         let response = self.send_message(messages).await;
         match response {
@@ -77,7 +77,7 @@ impl Agent for ChatGPT {
 
     async fn ask(
         &mut self,
-        messages: &Vec<MessageRequest>,
+        messages: Vec<MessageRequest>,
     ) -> Result<Vec<Task>, AgentError> {
         let response = self.send_message(messages).await;
         match response {

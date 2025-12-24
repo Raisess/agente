@@ -28,7 +28,7 @@ pub fn system_prompt(tools: &HashMap<String, Box<dyn Tool>>) -> String {
     )
 }
 
-pub fn summarize_messages_prompt(messages: &Vec<MessageRequest>) -> String {
+pub fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
     let messages_prompt = messages
         .iter()
         .map(|MessageRequest { role, content }| {
