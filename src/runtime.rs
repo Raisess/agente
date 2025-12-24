@@ -23,10 +23,12 @@ impl Runtime {
     }
 
     pub async fn run(&mut self) -> () {
-        let tools_context_message = MessageRequest {
+        // @TODO: summarize message history time to time
+        let mut message_history = Vec::<MessageRequest>::new();
+        message_history.push(MessageRequest {
             role: MessageRole::System,
             content: prompt(&self.tools),
-        };
+        });
 
         loop {
             let mut input = String::new();
@@ -35,24 +37,27 @@ impl Runtime {
                 .read_line(&mut input)
                 .expect("Should have a input");
 
-            let message = MessageRequest {
+            message_history.push(MessageRequest {
                 role: MessageRole::User,
                 content: input,
-            };
+            });
             let execution_plan = self
                 .agent
-                .ask(&vec![tools_context_message.clone(), message])
+                .ask(&message_history)
                 .await
                 .expect("Failed to ask the agent for the execution plan");
             info!(name: "response", "{execution_plan:#?}");
 
-            let feed_context = &mut execution_plan
-                .iter()
-                .map(|t| MessageRequest {
-                    role: MessageRole::User,
-                    content: t.summary(),
-                })
-                .collect::<Vec<_>>();
+            // @FIXME: improve this
+            message_history.append(
+                &mut execution_plan
+                    .iter()
+                    .map(|t| MessageRequest {
+                        role: MessageRole::User,
+                        content: t.summary(),
+                    })
+                    .collect::<Vec<_>>(),
+            );
 
             let mut last_feed_response = FeedResponse::default();
             for task in execution_plan {
@@ -77,17 +82,26 @@ impl Runtime {
                                 message = format!("{usage}: {message}");
                             }
 
-                            feed_context.push(MessageRequest {
+                            message_history.push(MessageRequest {
                                 role: MessageRole::User,
                                 content: message,
                             });
-                            info!(name: "feed_context", "{feed_context:#?}");
-                            last_feed_response =
-                                self.agent.feed(&feed_context).await.expect(
+
+                            info!(name: "message_history", "{message_history:#?}");
+                            last_feed_response = self
+                                .agent
+                                .feed(&message_history.clone().split_off(1))
+                                .await
+                                .expect(
                                     "Failed to feed agent with tool result \
                                      information",
                                 );
                             info!(name: "feed_response", "{last_feed_response:#?}");
+
+                            // message_history.push(MessageRequest {
+                            // role: MessageRole::Assistant,
+                            // content: format!("Done: {}", task.summary()),
+                            // });
                         }
                     }
                     Err(error) => error!("{}", error.message()),

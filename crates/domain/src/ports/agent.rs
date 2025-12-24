@@ -22,6 +22,7 @@ pub enum AgentError {
 
 #[derive(Debug, Clone)]
 pub enum MessageRole {
+    Assistant,
     System,
     User,
 }
@@ -29,6 +30,7 @@ pub enum MessageRole {
 impl ToString for MessageRole {
     fn to_string(&self) -> String {
         String::from(match self {
+            MessageRole::Assistant => "assistant",
             MessageRole::System => "system",
             MessageRole::User => "user",
         })
