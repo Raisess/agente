@@ -8,14 +8,13 @@ impl TalkTool {
     }
 }
 
-// @TODO: in progress
 #[async_trait::async_trait]
 impl Tool for TalkTool {
     async fn handle(
         &self,
-        _arguments: Vec<String>,
+        arguments: Vec<String>,
     ) -> Result<Option<String>, ToolError> {
-        Ok(None)
+        Ok(arguments.get(0).cloned())
     }
 
     fn context(&self) -> &'static str {
@@ -24,7 +23,10 @@ impl Tool for TalkTool {
     }
 
     fn format_instruction(&self) -> Option<&'static str> {
-        None
+        Some(
+            "provide the response as the result in a format like this: \
+             [\"<response>\"]",
+        )
     }
 
     fn usage_instruction(&self) -> Option<&'static str> {
