@@ -5,11 +5,13 @@ use tracing_subscriber;
 use tracing_subscriber::EnvFilter;
 
 use agente::runtime::Runtime;
+use agente_application::tools::bash::BashTool;
 use agente_application::tools::read::ReadTool;
 use agente_application::tools::talk::TalkTool;
 use agente_application::tools::write::WriteTool;
 use agente_domain::core::tool::Tool;
 use agente_infrastructure::adapters::agents::chat_gpt::ChatGPT;
+use agente_infrastructure::adapters::cmd::CMD;
 use agente_infrastructure::adapters::file_system::FileSystem;
 
 #[tokio::main]
@@ -19,8 +21,10 @@ async fn main() {
         .init();
 
     let fs = Arc::new(FileSystem::default());
+    let cmd = Arc::new(CMD::default());
 
     let mut tools = HashMap::<String, Box<dyn Tool>>::new();
+    tools.insert("Bash".to_string(), Box::new(BashTool::new(cmd.clone())));
     tools.insert("Read".to_string(), Box::new(ReadTool::new(fs.clone())));
     tools.insert("Write".to_string(), Box::new(WriteTool::new(fs.clone())));
     tools.insert("Talk".to_string(), Box::new(TalkTool::new()));

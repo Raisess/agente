@@ -7,7 +7,7 @@ use agente_domain::ports::agent::{
 
 use crate::prompt::summarize_messages_prompt;
 
-const MAX_MESSAGES: usize = 5;
+const MAX_MESSAGES: usize = 10;
 
 pub struct Context {
     messages: Vec<MessageRequest>,
