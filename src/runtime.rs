@@ -51,7 +51,7 @@ impl Runtime {
                 match tool.handle(args).await {
                     Ok(result) => {
                         info!(name: "tool_result", "{key}: {result:#?}");
-                        if result.is_feedable {
+                        if result.is_feedable && !result.data.is_empty() {
                             let mut message = result.data;
                             if let Some(usage) = tool.usage_instruction() {
                                 message = format!("{usage}: {message}");
