@@ -1,4 +1,4 @@
-use agente_domain::core::tool::{Tool, ToolError};
+use agente_domain::core::tool::{Tool, ToolError, ToolResponse};
 
 pub struct TalkTool;
 
@@ -13,8 +13,14 @@ impl Tool for TalkTool {
     async fn handle(
         &self,
         arguments: Vec<String>,
-    ) -> Result<Option<String>, ToolError> {
-        Ok(arguments.get(0).cloned())
+    ) -> Result<ToolResponse, ToolError> {
+        Ok(ToolResponse {
+            data: arguments
+                .get(0)
+                .cloned()
+                .unwrap_or(String::from("Empty response")),
+            is_feedable: false,
+        })
     }
 
     fn context(&self) -> &'static str {

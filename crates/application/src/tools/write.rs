@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use agente_domain::core::tool::{Tool, ToolError};
+use agente_domain::core::tool::{Tool, ToolError, ToolResponse};
 use agente_domain::ports::io::Writer;
 
 pub struct WriteTool {
@@ -18,7 +18,7 @@ impl Tool for WriteTool {
     async fn handle(
         &self,
         arguments: Vec<String>,
-    ) -> Result<Option<String>, ToolError> {
+    ) -> Result<ToolResponse, ToolError> {
         let path = arguments
             .get(0)
             .expect("`path` must be provided as argument 0");
@@ -36,7 +36,10 @@ impl Tool for WriteTool {
         };
 
         self.writer.write(path, value.as_bytes())?;
-        Ok(None)
+        Ok(ToolResponse {
+            data: String::from("Writed to the file"),
+            is_feedable: false,
+        })
     }
 
     fn context(&self) -> &'static str {

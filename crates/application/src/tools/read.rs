@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use agente_domain::core::tool::{Tool, ToolError};
+use agente_domain::core::tool::{Tool, ToolError, ToolResponse};
 use agente_domain::ports::io::Reader;
 
 pub struct ReadTool {
@@ -18,13 +18,16 @@ impl Tool for ReadTool {
     async fn handle(
         &self,
         arguments: Vec<String>,
-    ) -> Result<Option<String>, ToolError> {
+    ) -> Result<ToolResponse, ToolError> {
         let path = arguments
             .get(0)
             .expect("`path` must be provided as argument 0");
 
         let content = self.reader.read(path)?;
-        Ok(Some(content))
+        Ok(ToolResponse {
+            data: content,
+            is_feedable: true,
+        })
     }
 
     fn context(&self) -> &'static str {
@@ -78,7 +81,7 @@ mod tests {
             .handle(vec![String::from("file_path")])
             .await
             .expect("Failed to read");
-        assert_eq!(result, Some(String::from("file_path:some text")));
+        assert_eq!(result.data, String::from("file_path:some text"));
     }
 
     struct FailReaderMock;

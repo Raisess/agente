@@ -10,7 +10,7 @@ pub trait Tool {
     async fn handle(
         &self,
         arguments: Vec<String>,
-    ) -> Result<Option<String>, ToolError>;
+    ) -> Result<ToolResponse, ToolError>;
 
     /// Is the tool description, says when the tool should be used.
     fn context(&self) -> &'static str;
@@ -21,6 +21,15 @@ pub trait Tool {
     /// The tool usage instruction, says how the tool return should be used for
     /// the next prompt.
     fn usage_instruction(&self) -> Option<&'static str>;
+}
+
+/// Is the tool execution result
+#[derive(Debug)]
+pub struct ToolResponse {
+    /// The actual tool response data.
+    pub data: String,
+    /// Says if it should be feeded to the agent or not.
+    pub is_feedable: bool,
 }
 
 /// Generic error wrapper for tool implementations

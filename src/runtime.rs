@@ -49,13 +49,10 @@ impl Runtime {
                 last_feed_response = String::new();
 
                 match tool.handle(args).await {
-                    // @TODO: there should be two types of message, one for
-                    // feeding and another only for showing up, create a enum a
-                    // process it.
-                    // This will prevent executing twice for talk tool.
                     Ok(result) => {
                         info!(name: "tool_result", "{key}: {result:#?}");
-                        if let Some(mut message) = result {
+                        if result.is_feedable {
+                            let mut message = result.data;
                             if let Some(usage) = tool.usage_instruction() {
                                 message = format!("{usage}: {message}");
                             }
@@ -67,6 +64,8 @@ impl Runtime {
                                     "Failed to feed agent with tool result \
                                      information",
                                 );
+                        } else {
+                            println!("Response: {}", result.data);
                         }
                     }
                     Err(error) => error!("{}", error.message()),
