@@ -69,10 +69,10 @@ impl Context {
 
         let result = agent.feed(self.messages.clone().split_off(1)).await?;
         info!(name: "feed_response", "{result:#?}");
-        /*self.messages.push(MessageRequest {
-            role: MessageRole::Assistant,
-            content: result.content.clone(),
-        });*/
+        // self.messages.push(MessageRequest {
+        // role: MessageRole::Assistant,
+        // content: result.content.clone(),
+        // });
 
         Ok(result.content)
     }
