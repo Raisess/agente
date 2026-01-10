@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use tokio::sync::mpsc;
 use tracing_subscriber;
 use tracing_subscriber::EnvFilter;
 
@@ -32,6 +33,32 @@ async fn main() {
     let api_key =
         std::env::var("CHAT_GPT_API_KEY").expect("CHAT_GPT_API_KEY to be set");
     let agent = ChatGPT::new(String::from(api_key));
+
+    let (input_tx, mut input_rx) = mpsc::channel::<String>(1);
+    tokio::spawn(async move {
+        loop {
+            let mut input = String::new();
+            println!("Prompt: ");
+            std::io::stdin()
+                .read_line(&mut input)
+                .expect("Should have a input");
+
+            match input_tx.send(input).await {
+                Ok(_) => {}
+                Err(error) => {
+                    eprintln!("Failed to send input to main thread: {error}")
+                }
+            }
+        }
+    });
+
+    let (output_tx, mut output_rx) = mpsc::channel::<String>(1);
+    tokio::spawn(async move {
+        while let Some(output) = output_rx.recv().await {
+            println!("Response: {}", output);
+        }
+    });
+
     let mut runtime = Runtime::init(Box::new(agent), tools);
-    runtime.run().await;
+    runtime.run(&mut input_rx, output_tx).await;
 }

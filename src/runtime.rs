@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
+use tokio::sync::mpsc::{Receiver, Sender};
 use tracing::{error, info};
 
 use agente_domain::core::models::task::Task;
-use agente_domain::core::tool::Tool;
+use agente_domain::core::tool::{Tool, ToolError};
 use agente_domain::ports::agent::Agent;
 
 use crate::context::Context;
@@ -29,14 +30,13 @@ impl Runtime {
         }
     }
 
-    pub async fn run(&mut self) -> () {
-        loop {
-            let mut input = String::new();
-            println!("Prompt: ");
-            std::io::stdin()
-                .read_line(&mut input)
-                .expect("Should have a input");
-
+    pub async fn run(
+        &mut self,
+        input_rx: &mut Receiver<String>,
+        output_tx: Sender<String>,
+    ) -> () {
+        while let Some(input) = input_rx.recv().await {
+            println!("Thinking...");
             let execution_plan = self
                 .context
                 .ask(&mut self.agent, input)
@@ -44,7 +44,21 @@ impl Runtime {
                 .expect("Failed to ask the agent for the execution plan");
 
             for task in execution_plan {
-                self.process_task(task).await;
+                match self
+                    .process_task(task, self.last_feed_response.clone())
+                    .await
+                {
+                    Ok(response) => {
+                        self.last_feed_response = response;
+                        output_tx
+                            .send(self.last_feed_response.clone())
+                            .await
+                            .expect("Failed to send response to output thread");
+                    }
+                    Err(error) => {
+                        error!("Failed to process task: {}", error.message())
+                    }
+                }
             }
 
             self.context
@@ -54,7 +68,11 @@ impl Runtime {
         }
     }
 
-    async fn process_task(&mut self, task: Task) -> () {
+    async fn process_task(
+        &mut self,
+        task: Task,
+        last_feed_response: String,
+    ) -> Result<String, ToolError> {
         let key = task.tool();
         let tool = self
             .tools
@@ -62,30 +80,23 @@ impl Runtime {
             .expect(&format!("Tool not found: {key}"));
 
         let mut args = task.arguments();
-        args.push(self.last_feed_response.clone());
-        self.last_feed_response = String::new();
+        args.push(last_feed_response);
 
-        match tool.handle(args).await {
-            Ok(result) => {
-                info!(name: "tool_result", "{key}: {result:#?}");
-                if result.is_feedable && !result.data.is_empty() {
-                    let mut message = result.data;
-                    if let Some(usage) = tool.usage_instruction() {
-                        message = format!("{usage}: {message}");
-                    }
-
-                    self.last_feed_response = self
-                        .context
-                        .feed(&mut self.agent, message)
-                        .await
-                        .expect(
-                            "Failed to feed agent with tool result information",
-                        );
-                } else {
-                    println!("Response: {}", result.data);
-                }
+        let result = tool.handle(args).await?;
+        info!(name: "tool_result", "{key}: {result:#?}");
+        if result.is_feedable && !result.data.is_empty() {
+            let mut message = result.data;
+            if let Some(usage) = tool.usage_instruction() {
+                message = format!("{usage}: {message}");
             }
-            Err(error) => error!("{}", error.message()),
+
+            let response =
+                self.context.feed(&mut self.agent, message).await.expect(
+                    "Failed to feed agent with tool result information",
+                );
+            return Ok(response);
+        } else {
+            return Ok(result.data);
         }
     }
 }
