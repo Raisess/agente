@@ -42,10 +42,15 @@ impl Runtime {
                 .ask(&mut self.agent, input)
                 .await
                 .expect("Failed to ask the agent for the execution plan");
+            let execution_plan_len = execution_plan.len();
 
             for task in execution_plan {
                 match self
-                    .process_task(task, self.last_feed_response.clone())
+                    .process_task(
+                        task,
+                        execution_plan_len,
+                        self.last_feed_response.clone(),
+                    )
                     .await
                 {
                     Ok(response) => {
@@ -71,6 +76,7 @@ impl Runtime {
     async fn process_task(
         &mut self,
         task: Task,
+        execution_plan_len: usize,
         last_feed_response: String,
     ) -> Result<String, ToolError> {
         let key = task.tool();
@@ -80,7 +86,11 @@ impl Runtime {
             .expect(&format!("Tool not found: {key}"));
 
         let mut args = task.arguments();
-        args.push(last_feed_response);
+        // @NOTE: add the last feed response as argument if the task is part of
+        // a execution plan
+        if execution_plan_len > 1 {
+            args.push(last_feed_response);
+        }
 
         let result = tool.handle(args).await?;
         info!(name: "tool_result", "{key}: {result:#?}");

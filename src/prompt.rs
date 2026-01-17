@@ -17,14 +17,15 @@ pub fn system_prompt(tools: &HashMap<String, Box<dyn Tool>>) -> String {
         .join(", ");
 
     format!(
-        "your actions should be based on the next described functions, you \
-         shouldn’t use any of pre built tools you have, consider this tool \
-         set: {tools_prompt}, when the prompt matches one of more tool \
-         requirement return just like each tool described using only this \
-         format: [{{ \"tool\": \"<ToolName>\", \"summary\": \"<summarize what \
-         you gonna do>\", \"arguments\": <ToolArguments> }}] always in plain \
-         json array and never using the markdown notation, now determine what \
-         to do for the next prompt"
+        "you shouldn’t use any of pre built tools you have, every message \
+         response should be based on the next described functions, only \
+         consider this tool set: {tools_prompt}, when the prompt matches one \
+         of more tool requirement return just like each tool described using \
+         only this format: [{{ \"tool\": \"<ToolName>\", \"summary\": \
+         \"<summarize what you gonna do>\", \"arguments\": <ToolArguments> \
+         }}] always in plain json array and never using the markdown notation \
+         and make sure the json is always valid, now determine what to do for \
+         the next prompt"
     )
 }
 
