@@ -1,4 +1,5 @@
-use agente_domain::core::tool::{Tool, ToolError, ToolResponse};
+use agente_domain::core::Error;
+use agente_domain::core::tool::{Tool, ToolResponse};
 
 pub struct TalkTool;
 
@@ -13,7 +14,7 @@ impl Tool for TalkTool {
     async fn handle(
         &self,
         arguments: Vec<String>,
-    ) -> Result<ToolResponse, ToolError> {
+    ) -> Result<ToolResponse, Error> {
         Ok(ToolResponse {
             data: arguments
                 .get(0)

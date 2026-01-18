@@ -1,3 +1,5 @@
+use crate::core::Error;
+
 /// The tool implementation interface
 /// It will be used to execute the tool capabilities, e.g.: Read, Write, etc.
 #[async_trait::async_trait]
@@ -10,7 +12,7 @@ pub trait Tool {
     async fn handle(
         &self,
         arguments: Vec<String>,
-    ) -> Result<ToolResponse, ToolError>;
+    ) -> Result<ToolResponse, Error>;
 
     /// Is the tool description, says when the tool should be used.
     fn context(&self) -> &'static str;
@@ -30,27 +32,4 @@ pub struct ToolResponse {
     pub data: String,
     /// Says if it should be feeded to the agent or not.
     pub is_feedable: bool,
-}
-
-/// Generic error wrapper for tool implementations
-#[derive(Debug)]
-pub struct ToolError {
-    message: String,
-}
-
-impl ToolError {
-    pub fn message(&self) -> String {
-        self.message.clone()
-    }
-}
-
-impl<E> From<E> for ToolError
-where
-    E: std::error::Error,
-{
-    fn from(value: E) -> Self {
-        Self {
-            message: value.to_string(),
-        }
-    }
 }

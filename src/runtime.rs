@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tracing::{error, info};
 
+use agente_domain::core::Error;
 use agente_domain::core::models::task::Task;
-use agente_domain::core::tool::{Tool, ToolError};
+use agente_domain::core::tool::Tool;
 use agente_domain::ports::agent::Agent;
 
 use crate::context::Context;
@@ -78,7 +79,7 @@ impl Runtime {
         task: Task,
         execution_plan_len: usize,
         last_feed_response: String,
-    ) -> Result<String, ToolError> {
+    ) -> Result<String, Error> {
         let key = task.tool();
         let tool = self
             .tools

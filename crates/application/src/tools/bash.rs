@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use agente_domain::core::tool::{Tool, ToolError, ToolResponse};
+use agente_domain::core::Error;
+use agente_domain::core::tool::{Tool, ToolResponse};
 use agente_domain::ports::io::Executor;
 
 pub struct BashTool {
@@ -18,7 +19,7 @@ impl Tool for BashTool {
     async fn handle(
         &self,
         arguments: Vec<String>,
-    ) -> Result<ToolResponse, ToolError> {
+    ) -> Result<ToolResponse, Error> {
         let command = arguments
             .get(0)
             .expect("Command must be provided as argument 0");

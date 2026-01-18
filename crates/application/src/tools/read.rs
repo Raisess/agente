@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use agente_domain::core::tool::{Tool, ToolError, ToolResponse};
+use agente_domain::core::Error;
+use agente_domain::core::tool::{Tool, ToolResponse};
 use agente_domain::ports::io::Reader;
 
 pub struct ReadTool {
@@ -18,7 +19,7 @@ impl Tool for ReadTool {
     async fn handle(
         &self,
         arguments: Vec<String>,
-    ) -> Result<ToolResponse, ToolError> {
+    ) -> Result<ToolResponse, Error> {
         let path = arguments
             .get(0)
             .expect("`path` must be provided as argument 0");
