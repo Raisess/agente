@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use agente_domain::core::command::Command;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tracing::{error, info};
 
@@ -14,6 +15,7 @@ use crate::prompt::system_prompt;
 pub struct Runtime {
     agent: Box<dyn Agent>,
     tools: HashMap<String, Box<dyn Tool>>,
+    commands: HashMap<String, Box<dyn Command>>,
     context: Context,
     last_feed_response: String,
 }
@@ -22,9 +24,11 @@ impl Runtime {
     pub fn init(
         agent: Box<dyn Agent>,
         tools: HashMap<String, Box<dyn Tool>>,
+        commands: HashMap<String, Box<dyn Command>>,
     ) -> Self {
         Self {
             agent,
+            commands,
             context: Context::init(system_prompt(&tools)),
             last_feed_response: String::new(),
             tools,
@@ -37,41 +41,63 @@ impl Runtime {
         output_tx: Sender<String>,
     ) -> () {
         while let Some(input) = input_rx.recv().await {
-            println!("Thinking...");
-            let execution_plan = self
-                .context
-                .ask(&mut self.agent, input)
-                .await
-                .expect("Failed to ask the agent for the execution plan");
-            let execution_plan_len = execution_plan.len();
-
-            for task in execution_plan {
-                match self
-                    .process_task(
-                        task,
-                        execution_plan_len,
-                        self.last_feed_response.clone(),
-                    )
-                    .await
-                {
-                    Ok(response) => {
-                        self.last_feed_response = response;
-                        output_tx
-                            .send(self.last_feed_response.clone())
-                            .await
-                            .expect("Failed to send response to output thread");
-                    }
-                    Err(error) => {
-                        error!("Failed to process task: {}", error.message())
-                    }
-                }
+            let input = input.trim().to_string();
+            if input.starts_with("/") {
+                return self.process_command(input);
             }
 
-            self.context
-                .summarize(&mut self.agent)
-                .await
-                .expect("Failed to summarize messages");
+            return self.process_execution_plan(output_tx, input).await;
         }
+    }
+
+    fn process_command(&mut self, input: String) -> () {
+        if let Some(command) = self.commands.get(&input.clone().split_off(1)) {
+            return command.execute().expect("Failed to execute command");
+        } else {
+            println!("Command not found for {input}!");
+            return ();
+        }
+    }
+
+    async fn process_execution_plan(
+        &mut self,
+        output_tx: Sender<String>,
+        input: String,
+    ) -> () {
+        println!("Thinking...");
+        let execution_plan = self
+            .context
+            .ask(&mut self.agent, input)
+            .await
+            .expect("Failed to ask the agent for the execution plan");
+        let execution_plan_len = execution_plan.len();
+
+        for task in execution_plan {
+            match self
+                .process_task(
+                    task,
+                    execution_plan_len,
+                    self.last_feed_response.clone(),
+                )
+                .await
+            {
+                Ok(response) => {
+                    self.last_feed_response = response;
+                    output_tx
+                        .send(self.last_feed_response.clone())
+                        .await
+                        .expect("Failed to send response to output thread");
+                }
+                Err(error) => {
+                    error!("Failed to process task: {}", error.message())
+                }
+            }
+        }
+
+        self.context
+            .summarize(&mut self.agent)
+            .await
+            .expect("Failed to summarize messages");
     }
 
     async fn process_task(

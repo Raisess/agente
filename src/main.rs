@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use agente_application::commands::exit::ExitCommand;
+use agente_domain::core::command::Command;
 use tokio::sync::mpsc;
 use tracing_subscriber;
 use tracing_subscriber::EnvFilter;
@@ -29,6 +31,10 @@ async fn main() {
     tools.insert("Read".to_string(), Box::new(ReadTool::new(fs.clone())));
     tools.insert("Write".to_string(), Box::new(WriteTool::new(fs.clone())));
     tools.insert("Talk".to_string(), Box::new(TalkTool::new()));
+
+    let exit_command = ExitCommand::default();
+    let mut commands = HashMap::<String, Box<dyn Command>>::new();
+    commands.insert(exit_command.name().into(), Box::new(exit_command));
 
     let api_key =
         std::env::var("CHAT_GPT_API_KEY").expect("CHAT_GPT_API_KEY to be set");
@@ -59,6 +65,6 @@ async fn main() {
         }
     });
 
-    let mut runtime = Runtime::init(Box::new(agent), tools);
+    let mut runtime = Runtime::init(Box::new(agent), tools, commands);
     runtime.run(&mut input_rx, output_tx).await;
 }

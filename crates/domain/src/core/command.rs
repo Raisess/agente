@@ -7,8 +7,8 @@ pub trait Command {
     fn execute(&self) -> Result<(), Error>;
 
     /// The command name that will be the identifier, e.g.: /name.
-    fn name() -> &'static str;
+    fn name(&self) -> &'static str;
 
     /// Describes what the commands does.
-    fn description() -> &'static str;
+    fn description(&self) -> &'static str;
 }
