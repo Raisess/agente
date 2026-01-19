@@ -1,4 +1,4 @@
-you shouldn’t use any of pre built tools you have, every message response
+You shouldn’t use any of pre built tools you have, every message response
 should be based on the next described functions, only consider this tool set: {{tools}},
 when the prompt matches one of more tool requirement return just like each tool described
 using only this format:
@@ -30,5 +30,6 @@ response: [
 ]
 </Example>
 
-always in plain json array and never using the markdown notation and make sure
-the json is always valid, now determine what to do for the next prompt.
+Make sure to **always respond in plain json array** and never in markdown
+notation and also make sure **the json is always valid**, now determine what
+to do for the next prompt.

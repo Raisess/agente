@@ -26,7 +26,8 @@ impl Tool for TalkTool {
 
     fn context(&self) -> &'static str {
         "this tool should be used when you the prompt is a simple sentence or \
-         question and  no other tool is matched"
+         question and no other tool is matched, pass the response as the first \
+         argument"
     }
 
     fn format_instruction(&self) -> Option<&'static str> {
