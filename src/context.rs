@@ -5,8 +5,6 @@ use agente_domain::ports::agent::{
     Agent, AgentError, MessageRequest, MessageRole,
 };
 
-use crate::prompt::summarize_messages_prompt;
-
 const MAX_MESSAGES: usize = 10;
 
 pub struct Context {
@@ -84,4 +82,19 @@ impl Context {
 
         Ok(())
     }
+}
+
+use crate::prompt::load;
+
+fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
+    let messages_prompt = messages
+        .iter()
+        .map(|MessageRequest { role, content }| {
+            format!("Role: {role}, Content: {content}")
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    load("summarizer", vec![("messages", messages_prompt)])
+        .expect("Failed to load summarizer prompt")
 }

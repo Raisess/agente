@@ -10,7 +10,6 @@ use agente_domain::core::tool::Tool;
 use agente_domain::ports::agent::Agent;
 
 use crate::context::Context;
-use crate::prompt::system_prompt;
 
 pub struct Runtime {
     agent: Box<dyn Agent>,
@@ -136,4 +135,23 @@ impl Runtime {
             return Ok(result.data);
         }
     }
+}
+
+use crate::prompt::load;
+
+fn system_prompt(tools: &HashMap<String, Box<dyn Tool>>) -> String {
+    let tools_prompt = tools
+        .iter()
+        .map(|(name, tool)| {
+            format!(
+                "{name}(context: \"{}\", arguments format: \"{}\")",
+                tool.context(),
+                tool.format_instruction().unwrap_or("[]")
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    load("system", vec![("tools", tools_prompt)])
+        .expect("Failed to load system prompt")
 }

@@ -1,50 +1,28 @@
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
-use agente_domain::core::tool::Tool;
-use agente_domain::ports::agent::MessageRequest;
-
 const __CACHE: LazyLock<HashMap<String, String>> =
     LazyLock::new(|| HashMap::new());
 const PROMPTS_FOLDER_PATH: &str = "__prompts";
 
-pub fn system_prompt(tools: &HashMap<String, Box<dyn Tool>>) -> String {
-    let tools_prompt = tools
-        .iter()
-        .map(|(name, tool)| {
-            format!(
-                "{name}(context: \"{}\", arguments format: \"{}\")",
-                tool.context(),
-                tool.format_instruction().unwrap_or("[]")
-            )
-        })
-        .collect::<Vec<_>>()
-        .join(", ");
-
-    load("system", vec![("tools", tools_prompt)])
-        .expect("Failed to load system prompt")
-}
-
-pub fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
-    let messages_prompt = messages
-        .iter()
-        .map(|MessageRequest { role, content }| {
-            format!("Role: {role}, Content: {content}")
-        })
-        .collect::<Vec<_>>()
-        .join(", ");
-
-    load("summarizer", vec![("messages", messages_prompt)])
-        .expect("Failed to load summarizer prompt")
-}
-
-fn load(
+/// This function loads a markdown file and store into the memory as a HashMap,
+/// using the entire path as key.
+///
+/// @param name - is the file name without the `__prompts` folder prefix, if it
+/// is inside a folder into `__prompts`, use/// like this: `folder/name`,
+/// remeber to not use the file extension.
+pub fn load(
     name: &str,
     replace: Vec<(&str, String)>,
 ) -> Result<String, std::io::Error> {
     let path = format!("{PROMPTS_FOLDER_PATH}/{name}.md");
+
     let binding = __CACHE;
     let Some(content) = binding.get(&path) else {
+        if !std::fs::exists(&path)? {
+            panic!("File: {path} not found, can't procced.");
+        }
+
         let mut content = std::fs::read_to_string(path)?;
 
         for (key, value) in replace {
