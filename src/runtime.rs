@@ -39,8 +39,10 @@ impl Runtime {
         input_rx: &mut Receiver<String>,
         output_tx: Sender<String>,
     ) -> () {
-        while let Some(input) = input_rx.recv().await {
-            let input = input.trim().to_string();
+        while let Some(input) =
+            input_rx.recv().await.map(|i| i.trim().to_string())
+            && !input.is_empty()
+        {
             if input.starts_with("/") {
                 self.process_command(input);
             } else {
@@ -137,7 +139,7 @@ impl Runtime {
     }
 }
 
-use crate::prompt::load;
+use agente_application::prompt::load;
 
 fn system_prompt(tools: &HashMap<String, Box<dyn Tool>>) -> String {
     let tools_prompt = tools

@@ -84,7 +84,7 @@ impl Context {
     }
 }
 
-use crate::prompt::load;
+use agente_application::prompt::load;
 
 fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
     let messages_prompt = messages
