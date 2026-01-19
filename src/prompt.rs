@@ -1,9 +1,10 @@
 use std::collections::HashMap;
-use std::sync::LazyLock;
+use std::sync::{LazyLock, Mutex};
 
-const __CACHE: LazyLock<HashMap<String, String>> =
-    LazyLock::new(|| HashMap::new());
 const PROMPTS_FOLDER_PATH: &str = "__prompts";
+
+static __CACHE: LazyLock<Mutex<HashMap<String, String>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// This function loads a markdown file and store into the memory as a HashMap,
 /// using the entire path as key.
@@ -17,18 +18,19 @@ pub fn load(
 ) -> Result<String, std::io::Error> {
     let path = format!("{PROMPTS_FOLDER_PATH}/{name}.md");
 
-    let binding = __CACHE;
+    let mut binding = __CACHE.lock().unwrap();
     let Some(content) = binding.get(&path) else {
         if !std::fs::exists(&path)? {
             panic!("File: {path} not found, can't procced.");
         }
 
-        let mut content = std::fs::read_to_string(path)?;
+        let mut content = std::fs::read_to_string(&path)?;
 
         for (key, value) in replace {
             content = content.replace(&format!("{{{{{key}}}}}"), &value);
         }
 
+        binding.insert(path, content.clone());
         return Ok(content);
     };
 
