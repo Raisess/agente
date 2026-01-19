@@ -43,10 +43,10 @@ impl Runtime {
         while let Some(input) = input_rx.recv().await {
             let input = input.trim().to_string();
             if input.starts_with("/") {
-                return self.process_command(input);
+                self.process_command(input);
+            } else {
+                self.process_execution_plan(&output_tx, input).await;
             }
-
-            return self.process_execution_plan(output_tx, input).await;
         }
     }
 
@@ -61,7 +61,7 @@ impl Runtime {
 
     async fn process_execution_plan(
         &mut self,
-        output_tx: Sender<String>,
+        output_tx: &Sender<String>,
         input: String,
     ) -> () {
         println!("Thinking...");
