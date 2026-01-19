@@ -7,7 +7,7 @@ use tokio::sync::mpsc;
 use tracing_subscriber;
 use tracing_subscriber::EnvFilter;
 
-use agente::runtime::Runtime;
+use agente::processor::Processor;
 use agente_application::tools::bash::BashTool;
 use agente_application::tools::read::ReadTool;
 use agente_application::tools::talk::TalkTool;
@@ -40,7 +40,7 @@ async fn main() {
         std::env::var("CHAT_GPT_API_KEY").expect("CHAT_GPT_API_KEY to be set");
     let agent = ChatGPT::new(String::from(api_key));
 
-    let (input_tx, mut input_rx) = mpsc::channel::<String>(1);
+    let (tx, mut rx) = mpsc::channel::<String>(1);
     tokio::spawn(async move {
         loop {
             let mut input = String::new();
@@ -49,7 +49,7 @@ async fn main() {
                 .read_line(&mut input)
                 .expect("Should have a input");
 
-            match input_tx.send(input).await {
+            match tx.send(input).await {
                 Ok(_) => {}
                 Err(error) => {
                     eprintln!("Failed to send input to main thread: {error}")
@@ -58,13 +58,14 @@ async fn main() {
         }
     });
 
-    let (output_tx, mut output_rx) = mpsc::channel::<String>(1);
-    tokio::spawn(async move {
-        while let Some(output) = output_rx.recv().await {
-            println!("Response: {}", output);
+    let mut processor = Processor::init(Box::new(agent), tools, commands);
+    while let Some(input) = rx.recv().await.map(|i| i.trim().to_string())
+        && !input.is_empty()
+    {
+        if let Some(output) = processor.handle(input).await {
+            for entry in output {
+                println!("Response: {}", entry);
+            }
         }
-    });
-
-    let mut runtime = Runtime::init(Box::new(agent), tools, commands);
-    runtime.run(&mut input_rx, output_tx).await;
+    }
 }

@@ -25,7 +25,7 @@ response: [
   {
     "tool": "Write",
     "summary": "write a summary of ./src/main.rs content",
-    "arguments": ["<content>"]
+    "arguments": ["<file-path>", "<content>"]
   }
 ]
 </Example>

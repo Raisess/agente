@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use agente_domain::core::command::Command;
-use tokio::sync::mpsc::{Receiver, Sender};
 use tracing::{error, info};
 
 use agente_domain::core::Error;
@@ -11,7 +10,7 @@ use agente_domain::ports::agent::Agent;
 
 use crate::context::Context;
 
-pub struct Runtime {
+pub struct Processor {
     agent: Box<dyn Agent>,
     tools: HashMap<String, Box<dyn Tool>>,
     commands: HashMap<String, Box<dyn Command>>,
@@ -19,7 +18,7 @@ pub struct Runtime {
     last_feed_response: String,
 }
 
-impl Runtime {
+impl Processor {
     pub fn init(
         agent: Box<dyn Agent>,
         tools: HashMap<String, Box<dyn Tool>>,
@@ -34,37 +33,23 @@ impl Runtime {
         }
     }
 
-    pub async fn run(
-        &mut self,
-        input_rx: &mut Receiver<String>,
-        output_tx: Sender<String>,
-    ) -> () {
-        while let Some(input) =
-            input_rx.recv().await.map(|i| i.trim().to_string())
-            && !input.is_empty()
-        {
-            if input.starts_with("/") {
-                self.process_command(input);
-            } else {
-                self.process_execution_plan(&output_tx, input).await;
-            }
+    pub async fn handle(&mut self, input: String) -> Option<Vec<String>> {
+        if input.starts_with("/") {
+            return self.process_command(input);
         }
-    }
 
-    fn process_command(&mut self, input: String) -> () {
-        if let Some(command) = self.commands.get(&input.clone().split_off(1)) {
-            return command.execute().expect("Failed to execute command");
-        } else {
-            println!("Command not found for {input}!");
-            return ();
-        }
+        return self.process_execution_plan(input).await;
     }
 
     async fn process_execution_plan(
         &mut self,
-        output_tx: &Sender<String>,
         input: String,
-    ) -> () {
+    ) -> Option<Vec<String>> {
+        self.context
+            .summarize(&mut self.agent)
+            .await
+            .expect("Failed to summarize messages");
+
         println!("Thinking...");
         let execution_plan = self
             .context
@@ -73,6 +58,7 @@ impl Runtime {
             .expect("Failed to ask the agent for the execution plan");
         let execution_plan_len = execution_plan.len();
 
+        let mut output = Vec::<String>::new();
         for task in execution_plan {
             match self
                 .process_task(
@@ -83,11 +69,8 @@ impl Runtime {
                 .await
             {
                 Ok(response) => {
-                    self.last_feed_response = response;
-                    output_tx
-                        .send(self.last_feed_response.clone())
-                        .await
-                        .expect("Failed to send response to output thread");
+                    self.last_feed_response = response.clone();
+                    output.push(response);
                 }
                 Err(error) => {
                     error!("Failed to process task: {}", error.message())
@@ -95,10 +78,7 @@ impl Runtime {
             }
         }
 
-        self.context
-            .summarize(&mut self.agent)
-            .await
-            .expect("Failed to summarize messages");
+        Some(output)
     }
 
     async fn process_task(
@@ -136,6 +116,16 @@ impl Runtime {
         } else {
             return Ok(result.data);
         }
+    }
+
+    fn process_command(&mut self, input: String) -> Option<Vec<String>> {
+        if let Some(command) = self.commands.get(&input.clone().split_off(1)) {
+            command.execute().expect("Failed to execute command");
+        } else {
+            println!("Command not found for {input}!");
+        }
+
+        None
     }
 }
 
