@@ -1,7 +1,12 @@
 use std::collections::HashMap;
+use std::sync::LazyLock;
 
 use agente_domain::core::tool::Tool;
 use agente_domain::ports::agent::MessageRequest;
+
+const __CACHE: LazyLock<HashMap<String, String>> =
+    LazyLock::new(|| HashMap::new());
+const PROMPTS_FOLDER_PATH: &str = "__prompts";
 
 pub fn system_prompt(tools: &HashMap<String, Box<dyn Tool>>) -> String {
     let tools_prompt = tools
@@ -16,17 +21,8 @@ pub fn system_prompt(tools: &HashMap<String, Box<dyn Tool>>) -> String {
         .collect::<Vec<_>>()
         .join(", ");
 
-    format!(
-        "you shouldn’t use any of pre built tools you have, every message \
-         response should be based on the next described functions, only \
-         consider this tool set: {tools_prompt}, when the prompt matches one \
-         of more tool requirement return just like each tool described using \
-         only this format: [{{ \"tool\": \"<ToolName>\", \"summary\": \
-         \"<summarize what you gonna do>\", \"arguments\": <ToolArguments> \
-         }}] always in plain json array and never using the markdown notation \
-         and make sure the json is always valid, now determine what to do for \
-         the next prompt"
-    )
+    load("system", vec![("tools", tools_prompt)])
+        .expect("Failed to load system prompt")
 }
 
 pub fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
@@ -38,5 +34,25 @@ pub fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
         .collect::<Vec<_>>()
         .join(", ");
 
-    format!("write a summary for this message list: {messages_prompt}")
+    load("summarizer", vec![("messages", messages_prompt)])
+        .expect("Failed to load summarizer prompt")
+}
+
+fn load(
+    name: &str,
+    replace: Vec<(&str, String)>,
+) -> Result<String, std::io::Error> {
+    let path = format!("{PROMPTS_FOLDER_PATH}/{name}.md");
+    let binding = __CACHE;
+    let Some(content) = binding.get(&path) else {
+        let mut content = std::fs::read_to_string(path)?;
+
+        for (key, value) in replace {
+            content = content.replace(&format!("{{{{{key}}}}}"), &value);
+        }
+
+        return Ok(content);
+    };
+
+    Ok(content.clone())
 }
