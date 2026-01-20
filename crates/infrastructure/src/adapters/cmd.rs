@@ -5,6 +5,7 @@ use agente_domain::ports::io::Executor;
 #[derive(Default)]
 pub struct CMD;
 
+// @TODO: had stream response
 impl Executor for CMD {
     fn exec(&self, cmd: &str) -> Result<String, std::io::Error> {
         let output = Command::new("bash").arg("-c").arg(cmd).output()?;

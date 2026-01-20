@@ -105,9 +105,11 @@ impl Processor {
         if result.is_feedable && !result.data.is_empty() {
             let mut message = result.data;
             if let Some(usage) = tool.usage_instruction() {
-                message = format!("{usage}: {message}");
+                message = format!("<usage>{usage}</usage> {message}");
             }
 
+            message =
+                format!("<summary>{}</summary> {message}", task.summary());
             let response =
                 self.context.feed(&mut self.agent, message).await.expect(
                     "Failed to feed agent with tool result information",

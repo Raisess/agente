@@ -44,8 +44,8 @@ impl Tool for WriteTool {
     }
 
     fn context(&self) -> &'static str {
-        "this tool should be used when a file need to created, writed or \
-         updated"
+        "this tool should be used only when a file need to be created, writed \
+         or updated"
     }
 
     fn format_instruction(&self) -> Option<&'static str> {

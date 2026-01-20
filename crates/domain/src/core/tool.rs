@@ -25,6 +25,7 @@ pub trait Tool {
     fn usage_instruction(&self) -> Option<&'static str>;
 }
 
+// @TODO: had stream response (it will be good for the Bash tool)
 /// Is the tool execution result
 #[derive(Debug)]
 pub struct ToolResponse {
