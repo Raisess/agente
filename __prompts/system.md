@@ -9,6 +9,7 @@ Available tools:
 2. When calling a tool:
    - Always provide all required arguments in JSON format.
    - Arguments must match the schema defined for each tool.
+   - Always remember to escape characters when is needed using `\\`.
 3. If multiple tools could apply, choose the most specific one.
 4. If no tool is required, use the "Talk" tool to produce plain text responses.
 5. Do not invent tools; only use the provided tools.

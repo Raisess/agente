@@ -15,7 +15,6 @@ pub struct Processor {
     tools: HashMap<String, Box<dyn Tool>>,
     commands: HashMap<String, Box<dyn Command>>,
     context: Context,
-    last_feed_response: String,
 }
 
 impl Processor {
@@ -28,7 +27,6 @@ impl Processor {
             agent,
             commands,
             context: Context::init(system_prompt(&tools)),
-            last_feed_response: String::new(),
             tools,
         }
     }
@@ -56,22 +54,12 @@ impl Processor {
             .ask(&mut self.agent, input)
             .await
             .expect("Failed to ask the agent for the execution plan");
-        let execution_plan_len = execution_plan.len();
 
         let mut output = Vec::<String>::new();
         for task in execution_plan {
-            match self
-                .process_task(
-                    task,
-                    execution_plan_len,
-                    self.last_feed_response.clone(),
-                )
-                .await
-            {
-                Ok(response) => {
-                    self.last_feed_response = response.clone();
-                    output.push(response);
-                }
+            let argument_from_context = output.last();
+            match self.process_task(task, argument_from_context).await {
+                Ok(response) => output.push(response),
                 Err(error) => {
                     error!("Failed to process task: {}", error.message())
                 }
@@ -84,8 +72,7 @@ impl Processor {
     async fn process_task(
         &mut self,
         task: Task,
-        execution_plan_len: usize,
-        last_feed_response: String,
+        argument_from_context: Option<&String>,
     ) -> Result<String, Error> {
         let key = task.tool();
         let tool = self
@@ -96,8 +83,9 @@ impl Processor {
         let mut args = task.arguments();
         // @NOTE: add the last feed response as argument if the task is part of
         // a execution plan
-        if execution_plan_len > 1 {
-            args.push(last_feed_response);
+        match argument_from_context {
+            Some(argument) => args.push(argument.clone()),
+            None => {}
         }
 
         let result = tool.handle(args).await?;

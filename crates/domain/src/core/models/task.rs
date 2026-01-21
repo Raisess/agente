@@ -9,11 +9,15 @@ pub struct Task {
     /// Describes what will be done by the tool
     summary: String,
     /// Is the tool arguments needed to properly execute the tool handler
-    arguments: Vec<String>,
+    arguments: Option<Vec<String>>,
 }
 
 impl Task {
-    pub fn new(tool: String, summary: String, arguments: Vec<String>) -> Self {
+    pub fn new(
+        tool: String,
+        summary: String,
+        arguments: Option<Vec<String>>,
+    ) -> Self {
         Self {
             tool,
             summary,
@@ -30,6 +34,6 @@ impl Task {
     }
 
     pub fn arguments(&self) -> Vec<String> {
-        self.arguments.clone()
+        self.arguments.clone().unwrap_or(vec![])
     }
 }
