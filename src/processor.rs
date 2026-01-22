@@ -48,7 +48,7 @@ impl Processor {
             .await
             .expect("Failed to summarize messages");
 
-        println!("Thinking...");
+        info!("asking...");
         let execution_plan = self
             .context
             .ask(&mut self.agent, input)

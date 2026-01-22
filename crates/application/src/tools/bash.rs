@@ -43,6 +43,6 @@ impl Tool for BashTool {
     }
 
     fn usage_instruction(&self) -> Option<&'static str> {
-        Some("Execute a bash command and get its output.")
+        Some("Execute a bash command and get its output")
     }
 }

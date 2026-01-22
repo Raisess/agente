@@ -1,17 +1,18 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use agente_application::commands::exit::ExitCommand;
-use agente_domain::core::command::Command;
 use tokio::sync::mpsc;
+use tracing::{error, info};
 use tracing_subscriber;
 use tracing_subscriber::EnvFilter;
 
 use agente::processor::Processor;
+use agente_application::commands::exit::ExitCommand;
 use agente_application::tools::bash::BashTool;
 use agente_application::tools::read::ReadTool;
 use agente_application::tools::talk::TalkTool;
 use agente_application::tools::write::WriteTool;
+use agente_domain::core::command::Command;
 use agente_domain::core::tool::Tool;
 use agente_infrastructure::adapters::agents::chat_gpt::ChatGPT;
 use agente_infrastructure::adapters::cmd::CMD;
@@ -41,7 +42,7 @@ async fn main() {
     let agent = ChatGPT::new(String::from(api_key));
 
     let (tx, mut rx) = mpsc::channel::<String>(1);
-    tokio::spawn(async move {
+    let input_thread = tokio::spawn(async move {
         loop {
             let mut input = String::new();
             println!("Prompt: ");
@@ -52,7 +53,8 @@ async fn main() {
             match tx.send(input).await {
                 Ok(_) => {}
                 Err(error) => {
-                    eprintln!("Failed to send input to main thread: {error}")
+                    error!("Failed to send input to main thread: {error}");
+                    break;
                 }
             }
         }
@@ -64,8 +66,10 @@ async fn main() {
     {
         if let Some(output) = processor.handle(input).await {
             for entry in output {
-                println!("Response: {}", entry);
+                info!("Response: {}", entry);
             }
         }
     }
+
+    input_thread.abort()
 }

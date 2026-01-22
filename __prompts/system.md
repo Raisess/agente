@@ -13,7 +13,8 @@ Available tools:
 3. If multiple tools could apply, choose the most specific one.
 4. If no tool is required, use the "Talk" tool to produce plain text responses.
 5. Do not invent tools; only use the provided tools.
-6. Respond only in the structured format expected by the agent:
+6. Respond only in the structured format expected by the agent, remember the JSON
+should be always valid:
 
 <format>
 [
@@ -21,8 +22,7 @@ Available tools:
     "tool": "<the tool name>",
     "summary": "<summarize what you do based on the entire prompt>",
     "arguments": [<ToolArguments>]
-  },
-  ...
+  }
 ]
 </format>
 
@@ -53,3 +53,7 @@ Prompt: read the file ./src/main.rs and write a summary of it to ./summary.md.
   }
 ]
 </response-example>
+
+### Important
+
+You **MUST** remember the strict message format you should send and stick with it forever.
