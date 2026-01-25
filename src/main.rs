@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use tokio::sync::mpsc;
-use tracing::{error, info};
+use tokio::sync::Mutex;
 use tracing_subscriber;
 use tracing_subscriber::EnvFilter;
 
+use agente::gui::GUI;
 use agente::processor::Processor;
 use agente_application::commands::exit::ExitCommand;
 use agente_application::tools::bash::BashTool;
@@ -41,35 +41,39 @@ async fn main() {
         std::env::var("CHAT_GPT_API_KEY").expect("CHAT_GPT_API_KEY to be set");
     let agent = ChatGPT::new(String::from(api_key));
 
-    let (tx, mut rx) = mpsc::channel::<String>(1);
-    let input_thread = tokio::spawn(async move {
-        loop {
-            let mut input = String::new();
-            println!("Prompt: ");
-            std::io::stdin()
-                .read_line(&mut input)
-                .expect("Should have a input");
+    let processor = Processor::init(Box::new(agent), tools, commands);
+    GUI::run(Arc::new(Mutex::new(processor)))
+        .expect("Failed to start gui application");
 
-            match tx.send(input).await {
-                Ok(_) => {}
-                Err(error) => {
-                    error!("Failed to send input to main thread: {error}");
-                    break;
-                }
-            }
-        }
-    });
-
-    let mut processor = Processor::init(Box::new(agent), tools, commands);
-    while let Some(input) = rx.recv().await.map(|i| i.trim().to_string())
-        && !input.is_empty()
-    {
-        if let Some(output) = processor.handle(input).await {
-            for entry in output {
-                info!("Response: {}", entry);
-            }
-        }
-    }
-
-    input_thread.abort()
+    // let (tx, mut rx) = mpsc::channel::<String>(1);
+    // let input_thread = tokio::spawn(async move {
+    // loop {
+    // let mut input = String::new();
+    // println!("Prompt: ");
+    // std::io::stdin()
+    // .read_line(&mut input)
+    // .expect("Should have a input");
+    //
+    // match tx.send(input).await {
+    // Ok(_) => {}
+    // Err(error) => {
+    // error!("Failed to send input to main thread: {error}");
+    // break;
+    // }
+    // }
+    // }
+    // });
+    //
+    // let mut processor = Processor::init(Box::new(agent), tools, commands);
+    // while let Some(input) = rx.recv().await.map(|i| i.trim().to_string())
+    // && !input.is_empty()
+    // {
+    // if let Some(output) = processor.handle(input).await {
+    // for entry in output {
+    // info!("Response: {}", entry);
+    // }
+    // }
+    // }
+    //
+    // input_thread.abort()
 }
