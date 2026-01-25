@@ -50,7 +50,7 @@ impl ChatGPT {
 #[async_trait::async_trait]
 impl Agent for ChatGPT {
     async fn feed(
-        &mut self,
+        &self,
         messages: Vec<MessageRequest>,
     ) -> Result<FeedResponse, AgentError> {
         let response = self.send_message(messages).await;
@@ -76,7 +76,7 @@ impl Agent for ChatGPT {
     }
 
     async fn ask(
-        &mut self,
+        &self,
         messages: Vec<MessageRequest>,
     ) -> Result<Vec<Task>, AgentError> {
         let response = self.send_message(messages).await;

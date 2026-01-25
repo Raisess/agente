@@ -22,8 +22,8 @@ impl Context {
     }
 
     pub async fn ask(
-        &mut self,
-        agent: &mut Box<dyn Agent>,
+        &self,
+        agent: &Box<dyn Agent>,
         prompt: String,
     ) -> Result<Vec<Task>, AgentError> {
         // @NOTE: copys the messages and keep the user prompt temporaly because
@@ -41,7 +41,7 @@ impl Context {
 
     pub async fn feed(
         &mut self,
-        agent: &mut Box<dyn Agent>,
+        agent: &Box<dyn Agent>,
         content: String,
     ) -> Result<String, AgentError> {
         self.messages.push(MessageRequest {
@@ -61,7 +61,7 @@ impl Context {
 
     pub async fn summarize(
         &mut self,
-        agent: &mut Box<dyn Agent>,
+        agent: &Box<dyn Agent>,
     ) -> Result<(), AgentError> {
         if self.messages.len() >= MAX_MESSAGES {
             info!("summarizing...");

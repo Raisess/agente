@@ -2,7 +2,7 @@ use crate::core::Error;
 
 /// The command implementation interface
 /// Describes a command execution, e.g.: /exit, should exit the program.
-pub trait Command {
+pub trait Command: Send + Sync {
     /// Handles the command behavior.
     fn execute(&self) -> Result<(), Error>;
 

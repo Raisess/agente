@@ -44,14 +44,14 @@ impl Processor {
         input: String,
     ) -> Option<Vec<String>> {
         self.context
-            .summarize(&mut self.agent)
+            .summarize(&self.agent)
             .await
             .expect("Failed to summarize messages");
 
         info!("asking...");
         let execution_plan = self
             .context
-            .ask(&mut self.agent, input)
+            .ask(&self.agent, input)
             .await
             .expect("Failed to ask the agent for the execution plan");
 
@@ -99,7 +99,7 @@ impl Processor {
             message =
                 format!("<summary>{}</summary> {message}", task.summary());
             let response =
-                self.context.feed(&mut self.agent, message).await.expect(
+                self.context.feed(&self.agent, message).await.expect(
                     "Failed to feed agent with tool result information",
                 );
             return Ok(response);
@@ -108,7 +108,7 @@ impl Processor {
         }
     }
 
-    fn process_command(&mut self, input: String) -> Option<Vec<String>> {
+    fn process_command(&self, input: String) -> Option<Vec<String>> {
         if let Some(command) = self.commands.get(&input.clone().split_off(1)) {
             command.execute().expect("Failed to execute command");
         } else {

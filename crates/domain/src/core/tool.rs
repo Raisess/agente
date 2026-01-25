@@ -3,7 +3,7 @@ use crate::core::Error;
 /// The tool implementation interface
 /// It will be used to execute the tool capabilities, e.g.: Read, Write, etc.
 #[async_trait::async_trait]
-pub trait Tool {
+pub trait Tool: Send + Sync {
     /// Executes the tool action, e.g.: ReadTool: Tool, will read some file on
     /// the host machine, and result in a success or a io error.
     ///

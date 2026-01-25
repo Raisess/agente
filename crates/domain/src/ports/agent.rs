@@ -5,18 +5,18 @@ use crate::core::models::task::Task;
 /// This is the Agent interface, it can represent a AI agent implementation,
 /// e.g.: ChatGPT, DeepSeek, etc.
 #[async_trait::async_trait]
-pub trait Agent {
+pub trait Agent: Send + Sync {
     /// Feed the agent with important info like file contents, summaries, etc
     /// and update the previous message context.
     /// @NOTE: Use send the base prompt to feed the agent instructions set.
     async fn feed(
-        &mut self,
+        &self,
         messages: Vec<MessageRequest>,
     ) -> Result<FeedResponse, AgentError>;
     /// Send a prompt to the AI agente and wait for the result.
     /// @NOTE: For each ask iteration the usage should be updated.
     async fn ask(
-        &mut self,
+        &self,
         messages: Vec<MessageRequest>,
     ) -> Result<Vec<Task>, AgentError>;
 }
