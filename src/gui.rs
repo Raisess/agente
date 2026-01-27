@@ -4,23 +4,9 @@ use iced::widget::{Column, column, text, text_input};
 use iced::{Element, Error, Renderer, Task, Theme, color};
 use tokio::sync::Mutex;
 
-use agente_domain::ports::agent::{MessageRequest, MessageRole};
-
 use crate::processor::Processor;
 
-#[derive(Clone, Debug)]
-enum Event {
-    Load(()),
-    Input(String),
-    Submit,
-    PushResponse(Vec<String>),
-}
-
-struct State {
-    input: String,
-    chat: Vec<MessageRequest>,
-    processor: Arc<Mutex<Processor>>,
-}
+const CHAT_ITEM_SIZE: u16 = 18;
 
 pub struct GUI;
 
@@ -45,11 +31,20 @@ impl GUI {
         let messages: Vec<Element<Event>> = state
             .chat
             .iter()
-            .map(|message| {
-                text(format!("{}: {}", message.role, &message.content))
-                    .size(15)
-                    .color(color!(0xffffff))
-                    .into()
+            .map(|item| {
+                let (from, color) = match item.from {
+                    ChatItemOwner::User => ("Me", color!(0xCDE7F2)),
+                    ChatItemOwner::System => ("Agente", color!(0xB7410E)),
+                };
+
+                let from = text::Span::new(format!("{from}: "))
+                    .size(CHAT_ITEM_SIZE)
+                    .color(color);
+                let message = text::Span::new(item.message.clone())
+                    .size(CHAT_ITEM_SIZE)
+                    .color(color!(0xFFFFFF));
+
+                text::Rich::with_spans([from, message]).into()
             })
             .collect();
 
@@ -63,7 +58,7 @@ impl GUI {
             chat_column = chat_column.push(message_widget);
         }
 
-        chat_column
+        chat_column.padding(10)
     }
 
     fn update(state: &mut State, event: Event) -> Task<Event> {
@@ -77,9 +72,9 @@ impl GUI {
                 let prompt = state.input.clone();
                 state.input = String::default();
 
-                state.chat.push(MessageRequest {
-                    role: MessageRole::User,
-                    content: prompt.clone(),
+                state.chat.push(ChatItem {
+                    from: ChatItemOwner::User,
+                    message: prompt.clone(),
                 });
 
                 let processor = state.processor.clone();
@@ -96,14 +91,47 @@ impl GUI {
                 state.chat.append(
                     &mut response
                         .into_iter()
-                        .map(|content| MessageRequest {
-                            role: MessageRole::Assistant,
-                            content,
+                        .map(|message| ChatItem {
+                            from: ChatItemOwner::System,
+                            message,
                         })
                         .collect::<Vec<_>>(),
                 );
                 Task::none()
             }
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+enum Event {
+    Load(()),
+    Input(String),
+    Submit,
+    PushResponse(Vec<String>),
+}
+
+struct State {
+    processor: Arc<Mutex<Processor>>,
+    input: String,
+    chat: Vec<ChatItem>,
+}
+
+struct ChatItem {
+    from: ChatItemOwner,
+    message: String,
+}
+
+enum ChatItemOwner {
+    User,
+    System,
+}
+
+impl ToString for ChatItemOwner {
+    fn to_string(&self) -> String {
+        match self {
+            ChatItemOwner::User => String::from("user"),
+            ChatItemOwner::System => String::from("system"),
         }
     }
 }
