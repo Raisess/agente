@@ -46,9 +46,9 @@ impl GUI {
             .chat
             .iter()
             .map(|message| {
-                text(&message.content)
-                    .size(10)
-                    .color(color!(0x0000ff))
+                text(format!("{}: {}", message.role, &message.content))
+                    .size(15)
+                    .color(color!(0xffffff))
                     .into()
             })
             .collect();
@@ -57,7 +57,6 @@ impl GUI {
             text_input::<Event, Theme, Renderer>("Prompt: ...", &state.input)
                 .on_input(Event::Input)
                 .on_submit(Event::Submit)
-                .into()
         ];
 
         for message_widget in messages {
