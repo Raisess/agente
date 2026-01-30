@@ -19,6 +19,27 @@ impl ChatGPT {
         }
     }
 
+    async fn handle_message_request(
+        &self,
+        messages: Vec<MessageRequest>,
+    ) -> Result<String, AgentError> {
+        let response = self
+            .send_message(messages)
+            .await
+            .map_err(|error| AgentError::Other(error.to_string()))?;
+
+        let status = response.status().as_u16();
+        if let Some(error) = status_to_error(status) {
+            return Err(error);
+        }
+
+        let data = response.json::<Response>().await.map_err(|error| {
+            AgentError::FailedToParseResponse(error.to_string())
+        })?;
+
+        Ok(extract_response_text(data))
+    }
+
     async fn send_message(
         &self,
         messages: Vec<MessageRequest>,
@@ -34,7 +55,7 @@ impl ChatGPT {
             .collect::<Vec<_>>();
         let json = serde_json::json!({
             "input": input,
-            "model": "gpt-3.5-turbo",
+            "model": "gpt-4.1-nano",
         });
 
         self.client
@@ -53,58 +74,26 @@ impl Agent for ChatGPT {
         &self,
         messages: Vec<MessageRequest>,
     ) -> Result<FeedResponse, AgentError> {
-        let response = self.send_message(messages).await;
-        match response {
-            Ok(response) => {
-                let status = response.status().as_u16();
-                if let Some(error) = status_to_error(status) {
-                    return Err(error);
-                }
-
-                match response.json::<Response>().await {
-                    Ok(data) => {
-                        let content = extract_response_text(data);
-                        Ok(FeedResponse { content })
-                    }
-                    Err(error) => Err(AgentError::FailedToParseResponse(
-                        error.to_string(),
-                    )),
-                }
-            }
-            Err(error) => Err(AgentError::Other(error.to_string())),
-        }
+        let content = self.handle_message_request(messages).await?;
+        Ok(FeedResponse { content })
     }
 
+    // @FIXME: should be able to handle plain text as return
     async fn ask(
         &self,
         messages: Vec<MessageRequest>,
     ) -> Result<Vec<Task>, AgentError> {
-        let response = self.send_message(messages).await;
-        match response {
-            Ok(response) => {
-                let status = response.status().as_u16();
-                if let Some(error) = status_to_error(status) {
-                    return Err(error);
-                }
+        let text = self.handle_message_request(messages).await?;
+        let tasks =
+            serde_json::from_str::<Vec<Task>>(&text).map_err(|error| {
+                AgentError::FailedToParseResponse(format!(
+                    "To deserialize to task model, provided text: {text}, \
+                     error: {}",
+                    error.to_string()
+                ))
+            })?;
 
-                match response.json::<Response>().await {
-                    Ok(data) => {
-                        let text = extract_response_text(data);
-                        let tasks = serde_json::from_str::<Vec<Task>>(&text)
-                            .expect(&format!(
-                                "To deserialize to task model, provided text: \
-                                 {text}"
-                            ));
-
-                        Ok(tasks)
-                    }
-                    Err(error) => Err(AgentError::FailedToParseResponse(
-                        error.to_string(),
-                    )),
-                }
-            }
-            Err(error) => Err(AgentError::Other(error.to_string())),
-        }
+        Ok(tasks)
     }
 }
 

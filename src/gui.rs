@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use iced::widget::{Column, column, scrollable, text, text_input};
-use iced::{Error, Length, Renderer, Task, Theme, color};
+use iced::widget::{Column, column, row, scrollable, text, text_input};
+use iced::{Element, Error, Length, Task, Theme, color};
 use tokio::sync::Mutex;
 
 use crate::processor::Processor;
@@ -20,6 +20,7 @@ impl GUI {
                     State {
                         __scroll_id: scrollable::Id::new("chat_scroll"),
                         input: String::default(),
+                        thinking: false,
                         chat: Vec::default(),
                         processor,
                     },
@@ -29,32 +30,60 @@ impl GUI {
     }
 
     fn view(state: &State) -> Column<'_, Event> {
-        let messages = state.chat.iter().map(|item| {
-            let (from, color) = match item.from {
-                ChatItemOwner::User => ("Me", color!(0xCDE7F2)),
-                ChatItemOwner::System => ("Agente", color!(0xB7410E)),
-            };
+        let mut messages = state
+            .chat
+            .iter()
+            .map(|item| {
+                let (from, color) = match item.from {
+                    ChatItemOwner::User => ("Me", color!(0x17d1b8)),
+                    ChatItemOwner::System => ("Agente", color!(0xb7410e)),
+                };
 
-            let from = text::Span::new(format!("{from}: "))
-                .size(CHAT_ITEM_SIZE)
-                .color(color);
-            let message = text::Span::new(item.message.clone())
-                .size(CHAT_ITEM_SIZE)
-                .color(color!(0xFFFFFF));
+                let from = text::Span::new(format!("{from}: "))
+                    .size(CHAT_ITEM_SIZE)
+                    .color(color);
 
-            text::Rich::with_spans([from, message]).into()
-        });
+                let message = match item.r#type {
+                    ChatItemType::Message => {
+                        text::Span::new(item.message.clone())
+                            .size(CHAT_ITEM_SIZE)
+                            .color(color!(0xe3e4ed))
+                    }
+                    ChatItemType::Log => text::Span::new(format!(
+                        "Error({})",
+                        item.message.clone()
+                    ))
+                    .size(CHAT_ITEM_SIZE)
+                    .color(color!(0xb51c1f)),
+                };
+
+                text::Rich::with_spans([from, message]).into()
+            })
+            .collect::<Vec<Element<Event>>>();
+
+        if state.thinking {
+            messages.push(
+                text::Rich::with_spans([text::Span::new("Thinking...")
+                    .size(CHAT_ITEM_SIZE)
+                    .color(color!(0xb7410e))])
+                .into(),
+            );
+        }
 
         let chat_column = column![
-            scrollable(column(messages))
+            scrollable(column(messages).spacing(1).padding(10))
                 .id(state.__scroll_id.clone())
+                .spacing(5)
+                .width(Length::Fill)
                 .height(Length::Fill),
-            text_input::<Event, Theme, Renderer>("Prompt: ...", &state.input)
+            row([text_input("Prompt: ...", &state.input)
                 .on_input(Event::Input)
-                .on_submit(Event::Submit),
+                .on_submit(Event::Submit)
+                .into()])
+            .padding(10),
         ];
 
-        chat_column.padding(10).height(Length::Fill)
+        chat_column
     }
 
     fn update(state: &mut State, event: Event) -> Task<Event> {
@@ -65,10 +94,13 @@ impl GUI {
                 Task::none()
             }
             Event::Submit => {
+                state.thinking = true;
+
                 let prompt = state.input.clone();
                 state.input = String::default();
 
                 state.chat.push(ChatItem {
+                    r#type: ChatItemType::Message,
                     from: ChatItemOwner::User,
                     message: prompt.clone(),
                 });
@@ -82,17 +114,29 @@ impl GUI {
                 Task::perform(
                     (async move || {
                         let mut processor = processor.lock().await;
-                        let output = processor.handle(prompt).await;
-                        output.unwrap_or_default()
+                        match processor.handle(prompt).await {
+                            Ok(output) => (
+                                ChatItemType::Message,
+                                output.unwrap_or_default(),
+                            ),
+                            Err(error) => {
+                                (ChatItemType::Log, vec![error.message()])
+                            }
+                        }
                     })(),
                     Event::PushResponse,
                 )
             }
             Event::PushResponse(response) => {
+                state.thinking = false;
+
+                let item_type = response.0;
                 state.chat.append(
                     &mut response
+                        .1
                         .into_iter()
                         .map(|message| ChatItem {
+                            r#type: item_type.clone(),
                             from: ChatItemOwner::System,
                             message,
                         })
@@ -115,17 +159,19 @@ enum Event {
     Load(()),
     Input(String),
     Submit,
-    PushResponse(Vec<String>),
+    PushResponse((ChatItemType, Vec<String>)),
 }
 
 struct State {
     __scroll_id: scrollable::Id,
     processor: Arc<Mutex<Processor>>,
     input: String,
+    thinking: bool,
     chat: Vec<ChatItem>,
 }
 
 struct ChatItem {
+    r#type: ChatItemType,
     from: ChatItemOwner,
     message: String,
 }
@@ -133,6 +179,12 @@ struct ChatItem {
 enum ChatItemOwner {
     User,
     System,
+}
+
+#[derive(Clone, Debug)]
+enum ChatItemType {
+    Log,
+    Message,
 }
 
 impl ToString for ChatItemOwner {

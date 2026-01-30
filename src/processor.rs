@@ -31,7 +31,11 @@ impl Processor {
         }
     }
 
-    pub async fn handle(&mut self, input: String) -> Option<Vec<String>> {
+    // @FIXME: this should result in a stream to output results
+    pub async fn handle(
+        &mut self,
+        input: String,
+    ) -> Result<Option<Vec<String>>, Error> {
         if input.starts_with("/") {
             return self.process_command(input);
         }
@@ -39,21 +43,15 @@ impl Processor {
         return self.process_execution_plan(input).await;
     }
 
+    // @FIXME: this should result in a stream to output results
     async fn process_execution_plan(
         &mut self,
         input: String,
-    ) -> Option<Vec<String>> {
-        self.context
-            .summarize(&self.agent)
-            .await
-            .expect("Failed to summarize messages");
+    ) -> Result<Option<Vec<String>>, Error> {
+        self.context.summarize(&self.agent).await?;
 
         info!("asking...");
-        let execution_plan = self
-            .context
-            .ask(&self.agent, input)
-            .await
-            .expect("Failed to ask the agent for the execution plan");
+        let execution_plan = self.context.ask(&self.agent, input).await?;
 
         let mut output = Vec::<String>::new();
         for task in execution_plan {
@@ -61,12 +59,13 @@ impl Processor {
             match self.process_task(task, argument_from_context).await {
                 Ok(response) => output.push(response),
                 Err(error) => {
-                    error!("Failed to process task: {}", error.message())
+                    error!("Failed to process task: {}", error.message());
+                    return Err(error);
                 }
             }
         }
 
-        Some(output)
+        Ok(Some(output))
     }
 
     async fn process_task(
@@ -108,14 +107,17 @@ impl Processor {
         }
     }
 
-    fn process_command(&self, input: String) -> Option<Vec<String>> {
+    fn process_command(
+        &self,
+        input: String,
+    ) -> Result<Option<Vec<String>>, Error> {
         if let Some(command) = self.commands.get(&input.clone().split_off(1)) {
-            command.execute().expect("Failed to execute command");
+            command.execute()?;
         } else {
             println!("Command not found for {input}!");
         }
 
-        None
+        Ok(None)
     }
 }
 
