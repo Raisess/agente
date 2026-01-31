@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use agente_domain::core::command::Command;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use agente_domain::core::Error;
 use agente_domain::core::models::task::Task;
@@ -114,7 +114,8 @@ impl Processor {
         if let Some(command) = self.commands.get(&input.clone().split_off(1)) {
             command.execute()?;
         } else {
-            println!("Command not found for {input}!");
+            warn!("Command not found for {input}!");
+            return Err(Error::new("Command not found"));
         }
 
         Ok(None)

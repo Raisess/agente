@@ -56,10 +56,8 @@ impl Tool for WriteTool {
     fn format_instruction(&self) -> Option<&'static str> {
         Some(
             "provide the file path as the result like this: [\"<file path>\", \
-             \"<content to be writed must be infered by the context of the \
-             last message, but only if the last message provided a clear \
-             context of what should be write, if not, just put <NONE> here \
-             instead.>\"]",
+             \"<content to be writed, but only if you have clear context of \
+             what should be write, if not, just put <NONE> here instead.>\"]",
         )
     }
 

@@ -78,7 +78,6 @@ impl Agent for ChatGPT {
         Ok(FeedResponse { content })
     }
 
-    // @FIXME: should be able to handle plain text as return
     async fn ask(
         &self,
         messages: Vec<MessageRequest>,

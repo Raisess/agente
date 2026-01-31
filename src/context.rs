@@ -22,20 +22,26 @@ impl Context {
     }
 
     pub async fn ask(
-        &self,
+        &mut self,
         agent: &Box<dyn Agent>,
         prompt: String,
     ) -> Result<Vec<Task>, AgentError> {
-        // @NOTE: copys the messages and keep the user prompt temporaly because
-        // the context will only keep the execution summary information.
-        let mut execution_prompt = self.messages.clone();
-        execution_prompt.push(MessageRequest {
+        self.messages.push(MessageRequest {
             role: MessageRole::User,
             content: prompt,
         });
 
-        let execution_plan = agent.ask(execution_prompt).await?;
-        info!(name: "execution_plan", "{:#?}", execution_plan);
+        info!(name: "history", "{:#?}", self.messages);
+        let execution_plan = agent.ask(self.messages.clone()).await?;
+        self.messages.push(MessageRequest {
+            role: MessageRole::Assistant,
+            content: execution_plan
+                .iter()
+                .map(|task| task.summary())
+                .collect::<Vec<_>>()
+                .join("\n"),
+        });
+
         Ok(execution_plan)
     }
 

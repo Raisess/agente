@@ -9,6 +9,12 @@ pub struct Error {
 }
 
 impl Error {
+    pub fn new(message: &str) -> Self {
+        Self {
+            message: message.to_string(),
+        }
+    }
+
     pub fn message(&self) -> String {
         self.message.clone()
     }
