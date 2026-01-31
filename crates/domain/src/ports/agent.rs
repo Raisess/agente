@@ -18,7 +18,7 @@ pub trait Agent: Send + Sync {
     async fn ask(
         &self,
         messages: Vec<MessageRequest>,
-    ) -> Result<Vec<Task>, AgentError>;
+    ) -> Result<AskResponse, AgentError>;
 }
 
 #[derive(Clone, Debug, Error)]
@@ -39,14 +39,20 @@ pub enum AgentError {
     ServicesOverloaded,
 }
 
-#[derive(Debug, Clone)]
-pub struct MessageRequest {
-    pub role: MessageRole,
+#[derive(Debug, Default)]
+pub struct FeedResponse {
     pub content: String,
 }
 
-#[derive(Debug, Default)]
-pub struct FeedResponse {
+#[derive(Debug)]
+pub enum AskResponse {
+    Tasks(Vec<Task>),
+    Text(String),
+}
+
+#[derive(Debug, Clone)]
+pub struct MessageRequest {
+    pub role: MessageRole,
     pub content: String,
 }
 

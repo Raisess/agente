@@ -1,8 +1,7 @@
 use tracing::info;
 
-use agente_domain::core::models::task::Task;
 use agente_domain::ports::agent::{
-    Agent, AgentError, MessageRequest, MessageRole,
+    Agent, AgentError, AskResponse, MessageRequest, MessageRole,
 };
 
 const MAX_MESSAGES: usize = 10;
@@ -25,24 +24,32 @@ impl Context {
         &mut self,
         agent: &Box<dyn Agent>,
         prompt: String,
-    ) -> Result<Vec<Task>, AgentError> {
+    ) -> Result<AskResponse, AgentError> {
         self.messages.push(MessageRequest {
             role: MessageRole::User,
             content: prompt,
         });
 
         info!(name: "history", "{:#?}", self.messages);
-        let execution_plan = agent.ask(self.messages.clone()).await?;
-        self.messages.push(MessageRequest {
-            role: MessageRole::Assistant,
-            content: execution_plan
-                .iter()
-                .map(|task| task.summary())
-                .collect::<Vec<_>>()
-                .join("\n"),
-        });
+        let ask_response = agent.ask(self.messages.clone()).await?;
+        match ask_response {
+            AskResponse::Text(ref text) => self.messages.push(MessageRequest {
+                role: MessageRole::Assistant,
+                content: text.to_owned(),
+            }),
+            AskResponse::Tasks(ref execution_plan) => {
+                self.messages.push(MessageRequest {
+                    role: MessageRole::Assistant,
+                    content: execution_plan
+                        .iter()
+                        .map(|task| task.summary())
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                })
+            }
+        }
 
-        Ok(execution_plan)
+        Ok(ask_response)
     }
 
     pub async fn feed(

@@ -3,7 +3,7 @@ use serde_json::Value;
 
 use agente_domain::core::models::task::Task;
 use agente_domain::ports::agent::{
-    Agent, AgentError, FeedResponse, MessageRequest,
+    Agent, AgentError, AskResponse, FeedResponse, MessageRequest,
 };
 
 pub struct ChatGPT {
@@ -81,8 +81,12 @@ impl Agent for ChatGPT {
     async fn ask(
         &self,
         messages: Vec<MessageRequest>,
-    ) -> Result<Vec<Task>, AgentError> {
+    ) -> Result<AskResponse, AgentError> {
         let text = self.handle_message_request(messages).await?;
+        if !text.starts_with("[") && !text.ends_with("]") {
+            return Ok(AskResponse::Text(text));
+        }
+
         let tasks =
             serde_json::from_str::<Vec<Task>>(&text).map_err(|error| {
                 AgentError::FailedToParseResponse(format!(
@@ -92,7 +96,7 @@ impl Agent for ChatGPT {
                 ))
             })?;
 
-        Ok(tasks)
+        Ok(AskResponse::Tasks(tasks))
     }
 }
 

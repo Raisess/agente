@@ -6,7 +6,7 @@ use tracing::{error, info, warn};
 use agente_domain::core::Error;
 use agente_domain::core::models::task::Task;
 use agente_domain::core::tool::Tool;
-use agente_domain::ports::agent::Agent;
+use agente_domain::ports::agent::{Agent, AskResponse};
 
 use crate::context::Context;
 
@@ -43,7 +43,6 @@ impl Processor {
         return self.process_execution_plan(input).await;
     }
 
-    // @FIXME: this should result in a stream to output results
     async fn process_execution_plan(
         &mut self,
         input: String,
@@ -51,21 +50,29 @@ impl Processor {
         self.context.summarize(&self.agent).await?;
 
         info!("asking...");
-        let execution_plan = self.context.ask(&self.agent, input).await?;
-
-        let mut output = Vec::<String>::new();
-        for task in execution_plan {
-            let argument_from_context = output.last();
-            match self.process_task(task, argument_from_context).await {
-                Ok(response) => output.push(response),
-                Err(error) => {
-                    error!("Failed to process task: {}", error.message());
-                    return Err(error);
+        let ask_response = self.context.ask(&self.agent, input).await?;
+        match ask_response {
+            // @FIXME: this should result in a stream to output results
+            AskResponse::Tasks(execution_plan) => {
+                let mut output = Vec::<String>::new();
+                for task in execution_plan {
+                    let argument_from_context = output.last();
+                    match self.process_task(task, argument_from_context).await {
+                        Ok(response) => output.push(response),
+                        Err(error) => {
+                            error!(
+                                "Failed to process task: {}",
+                                error.message()
+                            );
+                            return Err(error);
+                        }
+                    }
                 }
-            }
-        }
 
-        Ok(Some(output))
+                Ok(Some(output))
+            }
+            AskResponse::Text(text) => Ok(Some(vec![text])),
+        }
     }
 
     async fn process_task(
