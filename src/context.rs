@@ -32,44 +32,12 @@ impl Context {
 
         info!(name: "history", "{:#?}", self.messages);
         let ask_response = agent.ask(self.messages.clone()).await?;
-        match ask_response {
-            AskResponse::Text(ref text) => self.messages.push(MessageRequest {
-                role: MessageRole::Assistant,
-                content: text.to_owned(),
-            }),
-            AskResponse::Tasks(ref execution_plan) => {
-                self.messages.push(MessageRequest {
-                    role: MessageRole::Assistant,
-                    content: execution_plan
-                        .iter()
-                        .map(|task| task.summary())
-                        .collect::<Vec<_>>()
-                        .join("\n"),
-                })
-            }
-        }
-
-        Ok(ask_response)
-    }
-
-    pub async fn feed(
-        &mut self,
-        agent: &Box<dyn Agent>,
-        content: String,
-    ) -> Result<String, AgentError> {
-        self.messages.push(MessageRequest {
-            role: MessageRole::User,
-            content,
-        });
-
-        let result = agent.feed(self.messages.clone().split_off(1)).await?;
-        info!(name: "feed_response", "{result:#?}");
         self.messages.push(MessageRequest {
             role: MessageRole::Assistant,
-            content: result.content.clone(),
+            content: ask_response.content.clone(),
         });
 
-        Ok(result.content)
+        Ok(ask_response)
     }
 
     pub async fn summarize(
@@ -79,8 +47,9 @@ impl Context {
         if self.messages.len() >= MAX_MESSAGES {
             info!("summarizing...");
             let messages = self.messages.drain(1..).collect::<Vec<_>>();
+            println!("{messages:#?}");
             let result = agent
-                .feed(vec![MessageRequest {
+                .ask(vec![MessageRequest {
                     role: MessageRole::User,
                     content: summarize_messages_prompt(messages),
                 }])

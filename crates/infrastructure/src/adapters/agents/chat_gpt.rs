@@ -1,9 +1,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use agente_domain::core::models::task::Task;
 use agente_domain::ports::agent::{
-    Agent, AgentError, AskResponse, FeedResponse, MessageRequest,
+    Agent, AgentError, AskResponse, MessageRequest,
 };
 
 pub struct ChatGPT {
@@ -55,7 +54,7 @@ impl ChatGPT {
             .collect::<Vec<_>>();
         let json = serde_json::json!({
             "input": input,
-            "model": "gpt-4.1-nano",
+            "model": "gpt-3.5-turbo",
         });
 
         self.client
@@ -70,33 +69,12 @@ impl ChatGPT {
 
 #[async_trait::async_trait]
 impl Agent for ChatGPT {
-    async fn feed(
-        &self,
-        messages: Vec<MessageRequest>,
-    ) -> Result<FeedResponse, AgentError> {
-        let content = self.handle_message_request(messages).await?;
-        Ok(FeedResponse { content })
-    }
-
     async fn ask(
         &self,
         messages: Vec<MessageRequest>,
     ) -> Result<AskResponse, AgentError> {
-        let text = self.handle_message_request(messages).await?;
-        if !text.starts_with("[") && !text.ends_with("]") {
-            return Ok(AskResponse::Text(text));
-        }
-
-        let tasks =
-            serde_json::from_str::<Vec<Task>>(&text).map_err(|error| {
-                AgentError::FailedToParseResponse(format!(
-                    "To deserialize to task model, provided text: {text}, \
-                     error: {}",
-                    error.to_string()
-                ))
-            })?;
-
-        Ok(AskResponse::Tasks(tasks))
+        let content = self.handle_message_request(messages).await?;
+        Ok(AskResponse { content })
     }
 }
 

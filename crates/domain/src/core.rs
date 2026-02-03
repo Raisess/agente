@@ -1,6 +1,4 @@
 pub mod command;
-pub mod models;
-pub mod tool;
 
 /// Generic error wrapper for trait implementations
 #[derive(Debug)]

@@ -4,7 +4,7 @@ use agente_domain::core::command::Command;
 pub struct ExitCommand;
 
 impl Command for ExitCommand {
-    fn execute(&self) -> Result<(), agente_domain::core::Error> {
+    fn execute(&self) -> Result<Option<String>, agente_domain::core::Error> {
         std::process::exit(0);
     }
 

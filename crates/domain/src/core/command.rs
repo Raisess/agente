@@ -4,7 +4,7 @@ use crate::core::Error;
 /// Describes a command execution, e.g.: /exit, should exit the program.
 pub trait Command: Send + Sync {
     /// Handles the command behavior.
-    fn execute(&self) -> Result<(), Error>;
+    fn execute(&self) -> Result<Option<String>, Error>;
 
     /// The command name that will be the identifier, e.g.: /name.
     fn name(&self) -> &'static str;

@@ -119,9 +119,7 @@ impl GUI {
                                 ChatItemType::Message,
                                 output.unwrap_or_default(),
                             ),
-                            Err(error) => {
-                                (ChatItemType::Log, vec![error.message()])
-                            }
+                            Err(error) => (ChatItemType::Log, error.message()),
                         }
                     })(),
                     Event::PushResponse,
@@ -131,17 +129,11 @@ impl GUI {
                 state.thinking = false;
 
                 let item_type = response.0;
-                state.chat.append(
-                    &mut response
-                        .1
-                        .into_iter()
-                        .map(|message| ChatItem {
-                            r#type: item_type.clone(),
-                            from: ChatItemOwner::System,
-                            message,
-                        })
-                        .collect::<Vec<_>>(),
-                );
+                state.chat.push(ChatItem {
+                    r#type: item_type.clone(),
+                    from: ChatItemOwner::System,
+                    message: response.1,
+                });
 
                 let _ = scrollable::snap_to::<Event>(
                     state.__scroll_id.clone(),
@@ -159,7 +151,7 @@ enum Event {
     Load(()),
     Input(String),
     Submit,
-    PushResponse((ChatItemType, Vec<String>)),
+    PushResponse((ChatItemType, String)),
 }
 
 struct State {
