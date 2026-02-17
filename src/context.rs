@@ -1,18 +1,23 @@
+use std::sync::Arc;
+
 use tracing::info;
 
 use agente_domain::ports::agent::{
     Agent, AgentError, AskResponse, MessageRequest, MessageRole,
 };
+use agente_infrastructure::config::Config;
 
 const MAX_MESSAGES: usize = 10;
 
 pub struct Context {
+    config: Arc<Config>,
     messages: Vec<MessageRequest>,
 }
 
 impl Context {
-    pub fn init(system_prompt: String) -> Self {
+    pub fn init(config: Arc<Config>, system_prompt: String) -> Self {
         Self {
+            config,
             messages: vec![MessageRequest {
                 role: MessageRole::System,
                 content: system_prompt,
@@ -51,7 +56,10 @@ impl Context {
             let result = agent
                 .ask(vec![MessageRequest {
                     role: MessageRole::User,
-                    content: summarize_messages_prompt(messages),
+                    content: summarize_messages_prompt(
+                        &self.config.summarizer_prompt_path,
+                        messages,
+                    ),
                 }])
                 .await?;
 
@@ -68,7 +76,10 @@ impl Context {
 
 use agente_application::prompt::load;
 
-fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
+fn summarize_messages_prompt(
+    path: &str,
+    messages: Vec<MessageRequest>,
+) -> String {
     let messages_prompt = messages
         .iter()
         .map(|MessageRequest { role, content }| {
@@ -77,6 +88,6 @@ fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
         .collect::<Vec<_>>()
         .join(", ");
 
-    load("summarizer", vec![("messages", messages_prompt)])
+    load(path, vec![("messages", messages_prompt)])
         .expect("Failed to load summarizer prompt")
 }

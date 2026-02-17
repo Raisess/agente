@@ -4,6 +4,8 @@ use iced::widget::{Column, column, row, scrollable, text, text_input};
 use iced::{Element, Error, Length, Task, Theme, color};
 use tokio::sync::Mutex;
 
+use agente_infrastructure::config::Config;
+
 use crate::processor::Processor;
 
 const CHAT_ITEM_SIZE: u16 = 18;
@@ -11,7 +13,10 @@ const CHAT_ITEM_SIZE: u16 = 18;
 pub struct GUI;
 
 impl GUI {
-    pub fn run(processor: Arc<Mutex<Processor>>) -> Result<(), Error> {
+    pub fn run(
+        config: Arc<Config>,
+        processor: Arc<Mutex<Processor>>,
+    ) -> Result<(), Error> {
         iced::application("Agente", Self::update, Self::view)
             .theme(|_| Theme::Dark)
             .centered()
@@ -22,6 +27,7 @@ impl GUI {
                         input: String::default(),
                         thinking: false,
                         chat: Vec::default(),
+                        config,
                         processor,
                     },
                     Task::perform((async || {})(), Event::Load),
@@ -34,9 +40,16 @@ impl GUI {
             .chat
             .iter()
             .map(|item| {
+                let agent_name = state
+                    .config
+                    .name
+                    .clone()
+                    .expect("Bug: agent name should be always setted");
                 let (from, color) = match item.from {
                     ChatItemOwner::User => ("Me", color!(0x17d1b8)),
-                    ChatItemOwner::System => ("Agente", color!(0xb7410e)),
+                    ChatItemOwner::System => {
+                        (agent_name.as_str(), color!(0xb7410e))
+                    }
                 };
 
                 let from = text::Span::new(format!("{from}: "))
@@ -157,6 +170,7 @@ enum Event {
 struct State {
     __scroll_id: scrollable::Id,
     processor: Arc<Mutex<Processor>>,
+    config: Arc<Config>,
     input: String,
     thinking: bool,
     chat: Vec<ChatItem>,

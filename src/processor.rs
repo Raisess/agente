@@ -1,10 +1,12 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
-use agente_domain::core::command::Command;
 use tracing::{info, warn};
 
 use agente_domain::core::Error;
+use agente_domain::core::command::Command;
 use agente_domain::ports::agent::Agent;
+use agente_infrastructure::config::Config;
 
 use crate::context::Context;
 
@@ -17,12 +19,20 @@ pub struct Processor {
 impl Processor {
     pub fn init(
         agent: Box<dyn Agent>,
+        config: Arc<Config>,
         commands: HashMap<String, Box<dyn Command>>,
     ) -> Self {
         Self {
             agent,
             commands,
-            context: Context::init(system_prompt()),
+            context: Context::init(
+                config.clone(),
+                system_prompt(
+                    &config.system_prompt_path.clone().expect(
+                        "Bug: system_prompt_path must be always setted",
+                    ),
+                ),
+            ),
         }
     }
 
@@ -62,6 +72,6 @@ impl Processor {
 
 use agente_application::prompt::load;
 
-fn system_prompt() -> String {
-    load("system", vec![]).expect("Failed to load system prompt")
+fn system_prompt(path: &str) -> String {
+    load(path, vec![]).expect("Failed to load system prompt")
 }
