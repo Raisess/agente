@@ -23,7 +23,13 @@ async fn main() {
     let fs = Arc::new(FileSystem::default());
     // let cmd = Arc::new(CMD::default());
 
-    let config = Config::load(fs, None).expect("Failed to load config");
+    let config = match Config::load(fs.clone(), None) {
+        Ok(c) => c,
+        Err(_) => Config::setup_fallback(fs).expect(
+            "Failed to load config.json on the current path and from \
+             ~/.config/agente/config.json",
+        ),
+    };
 
     let exit_command = ExitCommand::default();
     let mut commands = HashMap::<String, Box<dyn Command>>::new();
