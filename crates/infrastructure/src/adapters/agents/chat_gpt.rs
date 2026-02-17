@@ -60,6 +60,8 @@ impl ChatGPT {
                 })
             })
             .collect::<Vec<_>>();
+        // @TODO: add tools and implement a shell tool to command the running
+        // machine
         let json = serde_json::json!({
             "input": input,
             "model": self.config.model, // gpt-3.5-turbo
