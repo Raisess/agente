@@ -1,14 +1,9 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
-use tokio::sync::Mutex;
 use tracing_subscriber;
 use tracing_subscriber::EnvFilter;
 
-use agente::gui::GUI;
 use agente::processor::Processor;
-use agente_application::commands::exit::ExitCommand;
-use agente_domain::core::command::Command;
 use agente_infrastructure::adapters::agents::chat_gpt::ChatGPT;
 // use agente_infrastructure::adapters::cmd::CMD;
 use agente_infrastructure::adapters::file_system::FileSystem;
@@ -31,12 +26,18 @@ async fn main() {
         ),
     };
 
-    let exit_command = ExitCommand::default();
-    let mut commands = HashMap::<String, Box<dyn Command>>::new();
-    commands.insert(exit_command.name().into(), Box::new(exit_command));
-
     let agent = ChatGPT::new(config.chat_gpt_api_key.clone());
-    let processor = Processor::init(Box::new(agent), config.clone(), commands);
-    GUI::run(config, Arc::new(Mutex::new(processor)))
-        .expect("Failed to start gui application");
+    let mut processor = Processor::init(Box::new(agent), config.clone());
+
+    // @TODO: load a file as a task
+    let args = std::env::args().collect::<Vec<_>>().split_off(1);
+    let input = args.get(0);
+    if input.is_none() || input.unwrap().is_empty() {
+        return ();
+    }
+
+    match processor.handle(input.unwrap().clone()).await {
+        Ok(response) => println!("{response}"),
+        Err(error) => eprintln!("{error:#?}"),
+    }
 }

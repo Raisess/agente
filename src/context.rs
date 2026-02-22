@@ -7,6 +7,8 @@ use agente_domain::ports::agent::{
 };
 use agente_infrastructure::config::Config;
 
+use crate::prompt::load;
+
 const MAX_MESSAGES: usize = 10;
 
 pub struct Context {
@@ -30,6 +32,7 @@ impl Context {
         agent: &Box<dyn Agent>,
         prompt: String,
     ) -> Result<AskResponse, AgentError> {
+        info!("asking...");
         self.messages.push(MessageRequest {
             role: MessageRole::User,
             content: prompt,
@@ -41,6 +44,7 @@ impl Context {
             role: MessageRole::Assistant,
             content: ask_response.content.clone(),
         });
+        info!("done!");
 
         Ok(ask_response)
     }
@@ -73,8 +77,6 @@ impl Context {
         Ok(())
     }
 }
-
-use agente_application::prompt::load;
 
 fn summarize_messages_prompt(
     path: &str,

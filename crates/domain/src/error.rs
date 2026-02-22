@@ -1,5 +1,3 @@
-pub mod command;
-
 /// Generic error wrapper for trait implementations
 #[derive(Debug)]
 pub struct Error {
