@@ -1,25 +1,20 @@
-use std::sync::Arc;
-
 use tracing::info;
 
 use agente_domain::ports::agent::{
     Agent, AgentError, AskResponse, MessageRequest, MessageRole,
 };
-use agente_infrastructure::config::Config;
 
 use crate::prompt::load;
 
 const MAX_MESSAGES: usize = 10;
 
 pub struct Context {
-    config: Arc<Config>,
     messages: Vec<MessageRequest>,
 }
 
 impl Context {
-    pub fn init(config: Arc<Config>, system_prompt: String) -> Self {
+    pub fn init(system_prompt: String) -> Self {
         Self {
-            config,
             messages: vec![MessageRequest {
                 role: MessageRole::System,
                 content: system_prompt,
@@ -61,7 +56,7 @@ impl Context {
                 .ask(vec![MessageRequest {
                     role: MessageRole::User,
                     content: summarize_messages_prompt(
-                        &self.config.summarizer_prompt_path,
+                        "__prompts/summarizer.md",
                         messages,
                     ),
                 }])

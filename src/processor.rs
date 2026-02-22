@@ -9,25 +9,32 @@ use crate::prompt::load;
 
 pub struct Processor {
     agent: Box<dyn Agent>,
+    config: Arc<Config>,
     context: Context,
 }
 
 impl Processor {
     pub fn init(agent: Box<dyn Agent>, config: Arc<Config>) -> Self {
+        let system_prompt = system_prompt(
+            &config
+                .system_prompt_path
+                .clone()
+                .expect("Bug: system_prompt_path must be always setted"),
+        );
+
         Self {
             agent,
-            context: Context::init(
-                config.clone(),
-                system_prompt(
-                    &config.system_prompt_path.clone().expect(
-                        "Bug: system_prompt_path must be always setted",
-                    ),
-                ),
-            ),
+            config,
+            context: Context::init(system_prompt),
         }
     }
 
     pub async fn handle(&mut self, input: String) -> Result<String, Error> {
+        // @FIXME: support select agent
+        if self.config.chat_gpt.api_key.is_empty() {
+            return Err(Error::new("No API Key provided"));
+        }
+
         self.context.summarize(&self.agent).await?;
 
         let ask_response = self.context.ask(&self.agent, input).await?;

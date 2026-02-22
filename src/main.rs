@@ -26,7 +26,7 @@ async fn main() {
         ),
     };
 
-    let agent = ChatGPT::new(config.chat_gpt_api_key.clone());
+    let agent = ChatGPT::new(config.chat_gpt.clone());
     let mut processor = Processor::init(Box::new(agent), config.clone());
 
     // @TODO: load a file as a task

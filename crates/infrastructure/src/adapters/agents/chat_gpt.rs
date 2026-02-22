@@ -5,15 +5,23 @@ use agente_domain::ports::agent::{
     Agent, AgentError, AskResponse, MessageRequest,
 };
 
+#[derive(Debug, Default, Clone, Deserialize, Serialize)]
+pub struct ChatGPTConfig {
+    #[serde(rename = "chat_gpt::api_key")]
+    pub api_key: String,
+    #[serde(rename = "chat_gpt::model")]
+    pub model: String,
+}
+
 pub struct ChatGPT {
-    api_key: String,
+    config: ChatGPTConfig,
     client: reqwest::Client,
 }
 
 impl ChatGPT {
-    pub fn new(api_key: String) -> Self {
+    pub fn new(config: ChatGPTConfig) -> Self {
         Self {
-            api_key,
+            config,
             client: reqwest::Client::new(),
         }
     }
@@ -54,13 +62,13 @@ impl ChatGPT {
             .collect::<Vec<_>>();
         let json = serde_json::json!({
             "input": input,
-            "model": "gpt-3.5-turbo",
+            "model": self.config.model, // gpt-3.5-turbo
         });
 
         self.client
             .post("https://api.openai.com/v1/responses")
             .header("Content-Type", "application/json")
-            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Authorization", format!("Bearer {}", self.config.api_key))
             .json(&json)
             .send()
             .await
