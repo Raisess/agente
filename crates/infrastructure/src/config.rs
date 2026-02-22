@@ -27,11 +27,13 @@ impl Config {
 
         let mut config = serde_json::from_str::<Config>(&content)?;
         config.name = Some(config.name.unwrap_or("Agente".to_string()));
+        // @FIXME: load system prompt from current path if the exists
         config.system_prompt_path = Some(
             config
                 .system_prompt_path
                 .unwrap_or(default_system_prompt_path()),
         );
+        config.summarizer_prompt_path = String::from("__prompts/summarizer.md");
 
         Ok(Arc::new(config))
     }
@@ -42,26 +44,12 @@ impl Config {
     {
         let config_folder_path = config_folder_path();
         Self::create_dir(&config_folder_path)?;
-        Self::create_dir(&format!("{}/prompts", config_folder_path))?;
-
-        // @TODO: copy prompts to config dir
 
         fs.write(
             &default_config_path(),
             &serde_json::to_string(&Config::default())?.as_bytes(),
         )?;
         Self::load(fs, None)
-    }
-
-    pub fn update(
-        &self,
-        writer: Arc<dyn Writer>,
-        path: Option<&str>,
-    ) -> Result<(), std::io::Error> {
-        Ok(writer.write(
-            path.unwrap_or(&default_config_path()),
-            &serde_json::to_string(self)?.as_bytes(),
-        )?)
     }
 
     pub fn pwd() -> Option<String> {
@@ -86,14 +74,14 @@ impl Config {
 }
 
 fn default_system_prompt_path() -> String {
-    String::from(format!("{}/prompts/system.md", config_folder_path()))
+    String::from("__prompts/system.md")
 }
 
 fn default_config_path() -> String {
-    String::from(format!("{}/config.json", config_folder_path()))
+    format!("{}/config.json", config_folder_path())
 }
 
 fn config_folder_path() -> String {
     let home = std::env!("HOME");
-    String::from(format!("{home}/.config/agente"))
+    format!("{home}/.config/agente")
 }

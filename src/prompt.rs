@@ -4,7 +4,7 @@ use std::sync::{LazyLock, Mutex};
 static __CACHE: LazyLock<Mutex<HashMap<String, String>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-/// This function loads a markdown file and store into the memory as a HashMap,
+/// This function loads a file content and store into the memory as a HashMap,
 /// using the entire path as key.
 pub fn load(
     path: &str,
