@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use agente_infrastructure::config::Config;
 use tracing::info;
 
 use agente_domain::ports::agent::{
@@ -13,7 +16,14 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn init(system_prompt: String) -> Self {
+    pub fn init(config: Arc<Config>) -> Self {
+        let system_prompt = system_prompt(
+            &config
+                .system_prompt_path
+                .clone()
+                .expect("Bug: system_prompt_path must be always setted"),
+        );
+
         Self {
             messages: vec![MessageRequest {
                 role: MessageRole::System,
@@ -87,4 +97,8 @@ fn summarize_messages_prompt(
 
     load(path, vec![("messages", messages_prompt)])
         .expect("Failed to load summarizer prompt")
+}
+
+fn system_prompt(path: &str) -> String {
+    load(path, vec![]).expect("Failed to load system prompt")
 }
