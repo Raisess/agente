@@ -1,11 +1,9 @@
-use std::sync::Arc;
-
-use agente_infrastructure::config::Config;
 use tracing::info;
 
 use agente_domain::ports::agent::{
     Agent, AgentError, AskResponse, MessageRequest, MessageRole,
 };
+use agente_infrastructure::config::Config;
 
 use crate::prompt::load;
 
@@ -16,12 +14,10 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn init(config: Arc<Config>) -> Self {
+    pub fn init() -> Self {
         let system_prompt = system_prompt(
-            &config
-                .system_prompt_path
-                .clone()
-                .expect("Bug: system_prompt_path must be always setted"),
+            "__prompts/system.md",
+            Config::pwd().expect("Can't get current directory"),
         );
 
         Self {
@@ -99,6 +95,7 @@ fn summarize_messages_prompt(
         .expect("Failed to load summarizer prompt")
 }
 
-fn system_prompt(path: &str) -> String {
-    load(path, vec![]).expect("Failed to load system prompt")
+fn system_prompt(path: &str, pwd: String) -> String {
+    load(path, vec![("current_dir", pwd)])
+        .expect("Failed to load system prompt")
 }

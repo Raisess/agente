@@ -13,9 +13,6 @@ pub struct Config {
     /// Chat GPT config
     #[serde(flatten)]
     pub chat_gpt: ChatGPTConfig,
-    /// Optional system prompt to initialize the agent, fallback to default if
-    /// not setted
-    pub system_prompt_path: Option<String>,
 }
 
 impl Config {
@@ -24,15 +21,7 @@ impl Config {
         path: Option<&str>,
     ) -> Result<Arc<Self>, std::io::Error> {
         let content = reader.read(path.unwrap_or(&default_config_path()))?;
-
-        let mut config = serde_json::from_str::<Config>(&content)?;
-        // @FIXME: load system prompt from current path if the exists
-        config.system_prompt_path = Some(
-            config
-                .system_prompt_path
-                .unwrap_or(default_system_prompt_path()),
-        );
-
+        let config = serde_json::from_str::<Config>(&content)?;
         Ok(Arc::new(config))
     }
 
@@ -69,10 +58,6 @@ impl Config {
 
         Ok(())
     }
-}
-
-fn default_system_prompt_path() -> String {
-    String::from("__prompts/system.md")
 }
 
 fn default_config_path() -> String {

@@ -14,11 +14,10 @@ pub struct Processor {
 
 impl Processor {
     pub fn init(agent: Box<dyn Agent>, config: Arc<Config>) -> Self {
-        let context = Context::init(config.clone());
         Self {
             agent,
             config,
-            context,
+            context: Context::init(),
         }
     }
 

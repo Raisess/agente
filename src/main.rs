@@ -52,7 +52,16 @@ async fn main() {
 
         println!("Thinking...");
         match processor.handle(prompt).await {
-            Ok(response) => println!("> Agente: {response}"),
+            Ok(response) => {
+                println!("> Agente: {response}");
+
+                let re = regex::Regex::new(r"Command\((.*)\)").unwrap();
+                if let Some(captured) = re.captures(&response) {
+                    let command = captured.get(1).unwrap().as_str();
+                    println!("Extracted command: {}", command);
+                    // @TODO: recursively run the processor with command result
+                }
+            },
             Err(error) => eprintln!("> System: {error:#?}"),
         }
     }
