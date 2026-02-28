@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use tokio::sync::mpsc;
 use tracing_subscriber;
 use tracing_subscriber::EnvFilter;
 
@@ -29,15 +30,30 @@ async fn main() {
     let agent = ChatGPT::new(config.chat_gpt.clone());
     let mut processor = Processor::init(Box::new(agent), config.clone());
 
-    // @TODO: load a file as a task
-    let args = std::env::args().collect::<Vec<_>>().split_off(1);
-    let input = args.get(0);
-    if input.is_none() || input.unwrap().is_empty() {
-        return ();
-    }
+    let (tx, mut rx) = mpsc::channel::<String>(1);
+    tokio::spawn(async move {
+        println!("> Type something:");
 
-    match processor.handle(input.unwrap().clone()).await {
-        Ok(response) => println!("{response}"),
-        Err(error) => eprintln!("{error:#?}"),
+        loop {
+            let mut input = String::new();
+            std::io::stdin()
+                .read_line(&mut input)
+                .expect("Failed to read from stdin");
+            tx.send(input)
+                .await
+                .expect("Failed to send input to main thread");
+        }
+    });
+
+    while let Some(prompt) = rx.recv().await {
+        if prompt.is_empty() {
+            continue;
+        }
+
+        println!("Thinking...");
+        match processor.handle(prompt).await {
+            Ok(response) => println!("> Agente: {response}"),
+            Err(error) => eprintln!("> System: {error:#?}"),
+        }
     }
 }
