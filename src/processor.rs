@@ -39,30 +39,35 @@ impl Processor {
                 continue;
             }
 
+            // @TODO: recursively run the processor with command
+            // result
             println!("Thinking...");
-            match self.handle(prompt).await {
-                Ok(response) => {
+            let result = self.process_prompt(prompt).await;
+            match result {
+                Ok((response, command)) => {
                     println!("> Agente: {response}");
-
-                    let re = regex::Regex::new(r"Command\((.*)\)").unwrap();
-                    if let Some(captured) = re.captures(&response) {
-                        // @TODO: handle multiple commands, store then as tasks and
-                        // process the entire recursion for each one and the drain
-                        // the task vector
-                        let command = captured.get(1).unwrap().as_str();
-                        println!("Extracted command: {}", command);
-                        // @TODO: recursively run the processor with command result
-                    }
+                    println!("Extracted command: {command:#?}");
                 }
                 Err(error) => eprintln!("> System: {error:#?}"),
             }
         }
     }
 
-    pub async fn handle(&mut self, input: String) -> Result<String, Error> {
+    async fn process_prompt(
+        &mut self,
+        prompt: String,
+    ) -> Result<(String, Option<String>), Error> {
         self.context.summarize(&self.agent).await?;
 
-        let ask_response = self.context.ask(&self.agent, input).await?;
-        Ok(ask_response.content)
+        let response = self.context.ask(&self.agent, prompt).await?;
+        let re = regex::Regex::new(r"Command\((.*)\)").unwrap();
+        if let Some(captured) = re.captures(&response.content.clone()) {
+            return Ok((
+                response.content,
+                Some(captured.get(1).unwrap().as_str().to_string()),
+            ));
+        }
+
+        Ok((response.content, None))
     }
 }
