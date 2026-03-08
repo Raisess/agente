@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use tokio::sync::mpsc;
 use tracing_subscriber;
 use tracing_subscriber::EnvFilter;
 
@@ -27,42 +26,12 @@ async fn main() {
         ),
     };
 
-    let agent = ChatGPT::new(config.chat_gpt.clone());
-    let mut processor = Processor::init(Box::new(agent), config.clone());
-
-    let (tx, mut rx) = mpsc::channel::<String>(1);
-    tokio::spawn(async move {
-        println!("> Type something:");
-
-        loop {
-            let mut input = String::new();
-            std::io::stdin()
-                .read_line(&mut input)
-                .expect("Failed to read from stdin");
-            tx.send(input)
-                .await
-                .expect("Failed to send input to main thread");
-        }
-    });
-
-    while let Some(prompt) = rx.recv().await {
-        if prompt.is_empty() {
-            continue;
-        }
-
-        println!("Thinking...");
-        match processor.handle(prompt).await {
-            Ok(response) => {
-                println!("> Agente: {response}");
-
-                let re = regex::Regex::new(r"Command\((.*)\)").unwrap();
-                if let Some(captured) = re.captures(&response) {
-                    let command = captured.get(1).unwrap().as_str();
-                    println!("Extracted command: {}", command);
-                    // @TODO: recursively run the processor with command result
-                }
-            },
-            Err(error) => eprintln!("> System: {error:#?}"),
-        }
+    // @FIXME: support select agent
+    if config.chat_gpt.api_key.is_empty() {
+        panic!("No API Key provided");
     }
+
+    let agent = ChatGPT::new(config.chat_gpt.clone());
+    let mut processor = Processor::init(Box::new(agent));
+    processor.run().await
 }
