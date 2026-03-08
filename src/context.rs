@@ -57,7 +57,6 @@ impl Context {
         if self.messages.len() >= MAX_MESSAGES {
             info!("summarizing...");
             let messages = self.messages.drain(1..).collect::<Vec<_>>();
-            println!("{messages:#?}");
             let result = agent
                 .ask(vec![MessageRequest {
                     role: MessageRole::User,
