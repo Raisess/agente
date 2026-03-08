@@ -2,12 +2,15 @@ use tokio::sync::mpsc;
 
 use agente_domain::error::Error;
 use agente_domain::ports::agent::Agent;
+use agente_domain::ports::io::Executor;
+use agente_infrastructure::adapters::cmd::CMD;
 
 use crate::context::Context;
 
 pub struct Processor {
     agent: Box<dyn Agent>,
     context: Context,
+    cmd: CMD,
 }
 
 impl Processor {
@@ -15,6 +18,7 @@ impl Processor {
         Self {
             agent,
             context: Context::init(),
+            cmd: CMD::default(),
         }
     }
 
@@ -34,22 +38,35 @@ impl Processor {
             }
         });
 
+        // @TODO: process the prompt first divide it by tasks and the execute
+        // each per time
         while let Some(prompt) = rx.recv().await {
             if prompt.is_empty() {
                 continue;
             }
 
-            // @TODO: recursively run the processor with command
-            // result
-            println!("Thinking...");
-            let result = self.process_prompt(prompt).await;
-            match result {
-                Ok((response, command)) => {
-                    println!("> Agente: {response}");
-                    println!("Extracted command: {command:#?}");
+            self.recursive_handler(prompt).await;
+        }
+    }
+
+    #[async_recursion::async_recursion]
+    async fn recursive_handler(&mut self, prompt: String) -> () {
+        println!("Thinking...");
+        let result = self.process_prompt(prompt).await;
+        match result {
+            Ok((response, command)) => {
+                println!("> Agente: {response}");
+                // @TODO: should ask for permission before running the command
+                if let Some(command_result) = command.map(|c| self.cmd.exec(&c))
+                {
+                    match command_result {
+                        // @TODO: crop the output size when too big
+                        Ok(output) => self.recursive_handler(output).await,
+                        Err(error) => eprintln!("> System: {error:#?}"),
+                    }
                 }
-                Err(error) => eprintln!("> System: {error:#?}"),
             }
+            Err(error) => eprintln!("> System: {error:#?}"),
         }
     }
 

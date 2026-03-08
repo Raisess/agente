@@ -5,7 +5,6 @@ use tracing_subscriber::EnvFilter;
 
 use agente::processor::Processor;
 use agente_infrastructure::adapters::agents::chat_gpt::ChatGPT;
-// use agente_infrastructure::adapters::cmd::CMD;
 use agente_infrastructure::adapters::file_system::FileSystem;
 use agente_infrastructure::config::Config;
 
@@ -16,8 +15,6 @@ async fn main() {
         .init();
 
     let fs = Arc::new(FileSystem::default());
-    // let cmd = Arc::new(CMD::default());
-
     let config = match Config::load(fs.clone(), None) {
         Ok(c) => c,
         Err(_) => Config::setup_fallback(fs).expect(
@@ -26,7 +23,7 @@ async fn main() {
         ),
     };
 
-    // @FIXME: support select agent
+    // @TODO: support select agent
     if config.chat_gpt.api_key.is_empty() {
         panic!("No API Key provided");
     }

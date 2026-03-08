@@ -17,6 +17,7 @@ tokio = { version = "1.48.0", features = ["full"] }
 [dependencies]
 agente-domain = { path = "crates/domain" }
 agente-infrastructure = { path = "crates/infrastructure" }
+async-recursion = "1.1.1"
 async-trait = { workspace = true }
 regex = "1.12.3"
 tokio = { workspace = true }

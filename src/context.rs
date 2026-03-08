@@ -13,12 +13,11 @@ pub struct Context {
     messages: Vec<MessageRequest>,
 }
 
+// @TODO: create a method to divide by tasks having a specific prompt
 impl Context {
     pub fn init() -> Self {
-        let system_prompt = system_prompt(
-            "__prompts/system.md",
-            Config::pwd().expect("Can't get current directory"),
-        );
+        let system_prompt =
+            system_prompt(Config::pwd().expect("Can't get current directory"));
 
         Self {
             messages: vec![MessageRequest {
@@ -60,10 +59,7 @@ impl Context {
             let result = agent
                 .ask(vec![MessageRequest {
                     role: MessageRole::User,
-                    content: summarize_messages_prompt(
-                        "__prompts/summarizer.md",
-                        messages,
-                    ),
+                    content: summarize_messages_prompt(messages),
                 }])
                 .await?;
 
@@ -78,10 +74,7 @@ impl Context {
     }
 }
 
-fn summarize_messages_prompt(
-    path: &str,
-    messages: Vec<MessageRequest>,
-) -> String {
+fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
     let messages_prompt = messages
         .iter()
         .map(|MessageRequest { role, content }| {
@@ -90,11 +83,14 @@ fn summarize_messages_prompt(
         .collect::<Vec<_>>()
         .join(", ");
 
-    load(path, vec![("messages", messages_prompt)])
-        .expect("Failed to load summarizer prompt")
+    load(
+        "__prompts/summarizer.md",
+        vec![("messages", messages_prompt)],
+    )
+    .expect("Failed to load summarizer prompt")
 }
 
-fn system_prompt(path: &str, pwd: String) -> String {
-    load(path, vec![("current_dir", pwd)])
+fn system_prompt(pwd: String) -> String {
+    load("__prompts/system.md", vec![("current_dir", pwd)])
         .expect("Failed to load system prompt")
 }
