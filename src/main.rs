@@ -59,7 +59,7 @@ async fn start_stdio(processor: &mut Processor) -> () {
             continue;
         }
 
-        processor.handle(prompt).await;
+        let _ = processor.handle(prompt).await;
     }
 }
 

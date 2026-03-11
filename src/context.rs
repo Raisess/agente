@@ -7,24 +7,42 @@ use agente_infrastructure::config::Config;
 
 use crate::prompt::load;
 
-const MAX_MESSAGES: usize = 10;
+const MAX_MESSAGES: usize = 30;
 
 pub struct Context {
     messages: Vec<MessageRequest>,
 }
 
-// @TODO: create a method to divide by tasks having a specific prompt
 impl Context {
     pub fn init() -> Self {
-        let system_prompt =
-            system_prompt(Config::pwd().expect("Can't get current directory"));
-
         Self {
             messages: vec![MessageRequest {
                 role: MessageRole::System,
-                content: system_prompt,
+                content: system_prompt(),
             }],
         }
+    }
+
+    pub async fn generate_tasks(
+        &mut self,
+        agent: &Box<dyn Agent>,
+        prompt: String,
+    ) -> Result<AskResponse, AgentError> {
+        info!("generating tasks...");
+        let messages = vec![
+            MessageRequest {
+                role: MessageRole::System,
+                content: task_generator_prompt(),
+            },
+            MessageRequest {
+                role: MessageRole::User,
+                content: prompt,
+            },
+        ];
+        let ask_response = agent.ask(messages).await?;
+        info!("generated!");
+
+        Ok(ask_response)
     }
 
     pub async fn ask(
@@ -90,7 +108,24 @@ fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
     .expect("Failed to load summarizer prompt")
 }
 
-fn system_prompt(pwd: String) -> String {
-    load("__prompts/system.md", vec![("current_dir", pwd)])
-        .expect("Failed to load system prompt")
+fn task_generator_prompt() -> String {
+    load(
+        "__prompts/task_generator.md",
+        vec![(
+            "current_dir",
+            Config::pwd().expect("Can't get current directory"),
+        )],
+    )
+    .expect("Failed to load task generator prompt")
+}
+
+fn system_prompt() -> String {
+    load(
+        "__prompts/system.md",
+        vec![(
+            "current_dir",
+            Config::pwd().expect("Can't get current directory"),
+        )],
+    )
+    .expect("Failed to load system prompt")
 }

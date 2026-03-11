@@ -20,28 +20,38 @@ impl Processor {
         }
     }
 
-    // @TODO: to process the prompt first divide it by tasks and the execute
-    // each per time
-    pub async fn handle(&mut self, prompt: String) -> () {
-        self.process_prompt_task(prompt).await;
+    pub async fn handle(&mut self, prompt: String) -> Result<(), Error> {
+        let tasks = self.context.generate_tasks(&self.agent, prompt).await?;
+        // println!("{}", tasks.content);
+
+        let tasks =
+            tasks.content.split(";").into_iter().map(|task| task.trim());
+        for task in tasks {
+            self.recursively_process_task(task.to_string()).await;
+        }
+
+        Ok(())
     }
 
     // @TODO: this should be a streamable result for the caller
     // @FIXME: move the println calls to the stdio interface after having the
     // streamable result
     #[async_recursion::async_recursion]
-    async fn process_prompt_task(&mut self, task: String) -> () {
-        println!("Thinking...");
-        let result = self.process_input(task).await;
+    async fn recursively_process_task(&mut self, task: String) -> () {
+        let result = self.process_prompt(task).await;
         match result {
             Ok((response, command)) => {
                 println!("> Agente: {response}");
                 // @TODO: should ask for permission before running the command
-                if let Some(command_result) = command.map(|c| self.cmd.exec(&c))
-                {
+                if let Some(command_result) = command.map(|c| {
+                    println!("> Running({c})");
+                    self.cmd.exec(&c)
+                }) {
                     match command_result {
                         // @TODO: crop the output size when too big
-                        Ok(output) => self.process_prompt_task(output).await,
+                        Ok(output) => {
+                            self.recursively_process_task(output).await
+                        }
                         Err(error) => eprintln!("> System: {error:#?}"),
                     }
                 }
@@ -50,7 +60,7 @@ impl Processor {
         }
     }
 
-    async fn process_input(
+    async fn process_prompt(
         &mut self,
         input: String,
     ) -> Result<(String, Option<String>), Error> {
