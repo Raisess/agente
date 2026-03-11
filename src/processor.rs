@@ -38,13 +38,17 @@ impl Processor {
     // streamable result
     #[async_recursion::async_recursion]
     async fn recursively_process_task(&mut self, task: String) -> () {
+        if task.is_empty() {
+            return ();
+        }
+
         let result = self.process_prompt(task).await;
         match result {
             Ok((response, command)) => {
                 println!("> Agente: {response}");
                 // @TODO: should ask for permission before running the command
                 if let Some(command_result) = command.map(|c| {
-                    println!("> Running({c})");
+                    println!("< Running({c})");
                     self.cmd.exec(&c)
                 }) {
                     match command_result {
@@ -60,6 +64,7 @@ impl Processor {
         }
     }
 
+    // @FIXME: should support return more than one command
     async fn process_prompt(
         &mut self,
         input: String,
