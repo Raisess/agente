@@ -4,7 +4,7 @@ use tokio::sync::mpsc;
 use tracing_subscriber;
 use tracing_subscriber::EnvFilter;
 
-use agente::processor::Processor;
+use agente::processor::{Processor, TaskResponse};
 use agente_infrastructure::adapters::agents::chat_gpt::ChatGPT;
 use agente_infrastructure::adapters::file_system::FileSystem;
 use agente_infrastructure::config::Config;
@@ -51,6 +51,24 @@ async fn start_stdio(processor: &mut Processor) -> () {
             tx.send(input)
                 .await
                 .expect("Failed to send input to main thread");
+        }
+    });
+
+    let listener = processor.listener();
+    tokio::spawn(async move {
+        let cloned_listener = listener.clone();
+        let mut listener = cloned_listener.lock().await;
+        while let Some(response) = listener.recv().await {
+            match response {
+                TaskResponse::Thinking => println!("Thinking..."),
+                TaskResponse::MessageResponse(message) => {
+                    println!("> Agente: {message}")
+                }
+                TaskResponse::CommandResponse(command) => {
+                    println!("< Running({command})")
+                }
+                TaskResponse::Error(error) => eprintln!("> System: {error:#?}"),
+            }
         }
     });
 

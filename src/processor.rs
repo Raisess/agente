@@ -1,3 +1,8 @@
+use std::sync::Arc;
+
+use tokio::sync::Mutex;
+use tokio::sync::mpsc::{Receiver, Sender};
+
 use agente_domain::error::Error;
 use agente_domain::ports::agent::Agent;
 use agente_domain::ports::io::Executor;
@@ -5,7 +10,16 @@ use agente_infrastructure::adapters::cmd::CMD;
 
 use crate::context::Context;
 
+pub enum TaskResponse {
+    Thinking,
+    MessageResponse(String),
+    CommandResponse(String),
+    Error(Error),
+}
+
 pub struct Processor {
+    __receiver: Arc<Mutex<Receiver<TaskResponse>>>,
+    __sender: Sender<TaskResponse>,
     agent: Box<dyn Agent>,
     context: Context,
     cmd: CMD,
@@ -13,55 +27,70 @@ pub struct Processor {
 
 impl Processor {
     pub fn init(agent: Box<dyn Agent>) -> Self {
+        let (tx, rx) = tokio::sync::mpsc::channel::<TaskResponse>(10);
         Self {
+            __receiver: Arc::new(Mutex::new(rx)),
+            __sender: tx,
             agent,
             context: Context::init(),
             cmd: CMD::default(),
         }
     }
 
-    pub async fn handle(&mut self, prompt: String) -> Result<(), Error> {
-        let tasks = self.context.generate_tasks(&self.agent, prompt).await?;
-        // println!("{}", tasks.content);
+    pub fn listener(&self) -> Arc<Mutex<Receiver<TaskResponse>>> {
+        self.__receiver.clone()
+    }
 
-        let tasks =
-            tasks.content.split(";").into_iter().map(|task| task.trim());
-        for task in tasks {
-            self.recursively_process_task(task.to_string()).await;
+    pub async fn handle(&mut self, prompt: String) -> Result<(), Error> {
+        // @FIXME: removed the task planner since it was causing a lot of
+        // problems generating too many things to do and removing the ability to
+        // talk from the model.
+        // let tasks_text =
+        // self.context.generate_tasks(&self.agent, prompt).await?;
+        // println!("{}", tasks_text.content);
+
+        // let tasks_queue = tasks_text.content.split(";").map(|task|
+        // task.trim());
+        for task in vec![prompt] {
+            match self.recursively_process_task(task.to_string()).await {
+                Ok(_) => {}
+                Err(error) => {
+                    self.__sender.send(TaskResponse::Error(error)).await?;
+                    break;
+                }
+            }
         }
 
         Ok(())
     }
 
-    // @TODO: this should be a streamable result for the caller
-    // @FIXME: move the println calls to the stdio interface after having the
-    // streamable result
     #[async_recursion::async_recursion]
-    async fn recursively_process_task(&mut self, task: String) -> () {
+    async fn recursively_process_task(
+        &mut self,
+        task: String,
+    ) -> Result<(), Error> {
         if task.is_empty() {
-            return ();
+            return Ok(());
         }
 
-        let result = self.process_prompt(task).await;
-        match result {
-            Ok((response, command)) => {
-                println!("> Agente: {response}");
-                // @TODO: should ask for permission before running the command
-                if let Some(command_result) = command.map(|c| {
-                    println!("< Running({c})");
-                    self.cmd.exec(&c)
-                }) {
-                    match command_result {
-                        // @TODO: crop the output size when too big
-                        Ok(output) => {
-                            self.recursively_process_task(output).await
-                        }
-                        Err(error) => eprintln!("> System: {error:#?}"),
-                    }
-                }
-            }
-            Err(error) => eprintln!("> System: {error:#?}"),
+        self.__sender.send(TaskResponse::Thinking).await?;
+        let (response, command) = self.process_prompt(task).await?;
+        self.__sender
+            .send(TaskResponse::MessageResponse(response))
+            .await?;
+
+        // @TODO: should ask for permission before running the command
+        if let Some(command) = command {
+            self.__sender
+                .send(TaskResponse::CommandResponse(command.clone()))
+                .await?;
+
+            // @TODO: crop the output size when too big
+            let output = self.cmd.exec(&command)?;
+            return Ok(self.recursively_process_task(output).await?);
         }
+
+        Ok(())
     }
 
     // @FIXME: should support return more than one command
@@ -74,6 +103,7 @@ impl Processor {
         let response = self.context.ask(&self.agent, input).await?;
         let re = regex::Regex::new(r"Command\((.*)\)").unwrap();
         if let Some(captured) = re.captures(&response.content.clone()) {
+            //println!("{captured:#?}");
             return Ok((
                 response.content,
                 Some(captured.get(1).unwrap().as_str().to_string()),
