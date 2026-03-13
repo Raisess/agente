@@ -41,7 +41,17 @@ async fn start_stdio(processor: &mut Processor) -> () {
 
     let (tx, mut rx) = mpsc::channel::<String>(BUFFER_SIZE);
     tokio::spawn(async move {
-        println!("> Type something:");
+        println!(r#"================================
+            AGENTE
+================================
+
+   [◉‿◉]
+  /|   |\
+   |   |
+  / \ / \
+
+I'm Ready.
+> Type something:"#);
 
         loop {
             let mut input = String::new();
@@ -62,7 +72,7 @@ async fn start_stdio(processor: &mut Processor) -> () {
             match response {
                 TaskResponse::Thinking => println!("Thinking..."),
                 TaskResponse::MessageResponse(message) => {
-                    println!("> Agente: {message}")
+                    println!("[◉‿◉] > Agente: {message}")
                 }
                 TaskResponse::CommandSignature(command) => {
                     println!("< Running({command})")
