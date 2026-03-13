@@ -10,10 +10,15 @@ use agente_infrastructure::adapters::cmd::CMD;
 
 use crate::context::Context;
 
+const MAX_COMMAND_OUTPUT_SIZE: usize = 2500;
+
+// @TODO: link a message id, will be useful for websocket server to know message
+// and command contexts
 pub enum TaskResponse {
     Thinking,
     MessageResponse(String),
-    CommandResponse(String),
+    CommandSignature(String),
+    CommandResponse((String, String)),
     Error(Error),
 }
 
@@ -79,14 +84,20 @@ impl Processor {
             .send(TaskResponse::MessageResponse(response))
             .await?;
 
-        // @TODO: should ask for permission before running the command
         if let Some(command) = command {
             self.__sender
-                .send(TaskResponse::CommandResponse(command.clone()))
+                .send(TaskResponse::CommandSignature(command.clone()))
+                .await?;
+
+            let output = self.cmd.exec(&command)?;
+            let mut croped_output = output.clone();
+            croped_output.truncate(MAX_COMMAND_OUTPUT_SIZE);
+
+            self.__sender
+                .send(TaskResponse::CommandResponse((command, croped_output)))
                 .await?;
 
             // @TODO: crop the output size when too big
-            let output = self.cmd.exec(&command)?;
             return Ok(self.recursively_process_task(output).await?);
         }
 
@@ -103,7 +114,7 @@ impl Processor {
         let response = self.context.ask(&self.agent, input).await?;
         let re = regex::Regex::new(r"Command\((.*)\)").unwrap();
         if let Some(captured) = re.captures(&response.content.clone()) {
-            //println!("{captured:#?}");
+            // println!("{captured:#?}");
             return Ok((
                 response.content,
                 Some(captured.get(1).unwrap().as_str().to_string()),

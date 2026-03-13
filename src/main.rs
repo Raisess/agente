@@ -24,7 +24,7 @@ async fn main() {
         ),
     };
 
-    // @TODO: support select agent
+    // @TODO: support select agent type
     if config.chat_gpt.api_key.is_empty() {
         panic!("No API Key provided");
     }
@@ -64,11 +64,18 @@ async fn start_stdio(processor: &mut Processor) -> () {
                 TaskResponse::MessageResponse(message) => {
                     println!("> Agente: {message}")
                 }
-                TaskResponse::CommandResponse(command) => {
+                TaskResponse::CommandSignature(command) => {
                     println!("< Running({command})")
                 }
+                TaskResponse::CommandResponse((command, result)) => {
+                    if result.is_empty() {
+                        println!("> Resolved({command})")
+                    } else {
+                        println!("> Resolved({command}): {result}")
+                    }
+                }
                 TaskResponse::Error(error) => eprintln!("> System: {error:#?}"),
-            }
+            };
         }
     });
 
