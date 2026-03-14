@@ -112,21 +112,12 @@ fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
 fn task_generator_prompt() -> String {
     load(
         "__prompts/task_generator.md",
-        vec![(
-            "current_dir",
-            Config::pwd().expect("Can't get current directory"),
-        )],
+        vec![("current_dir", Config::pwd())],
     )
     .expect("Failed to load task generator prompt")
 }
 
 fn system_prompt() -> String {
-    load(
-        "__prompts/system.md",
-        vec![(
-            "current_dir",
-            Config::pwd().expect("Can't get current directory"),
-        )],
-    )
-    .expect("Failed to load system prompt")
+    load("__prompts/system.md", vec![("current_dir", Config::pwd())])
+        .expect("Failed to load system prompt")
 }

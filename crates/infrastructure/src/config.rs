@@ -39,11 +39,12 @@ impl Config {
         Self::load(fs, None)
     }
 
-    pub fn pwd() -> Option<String> {
+    pub fn pwd() -> String {
         std::env::current_dir()
             .expect("Failed to get current dir")
             .to_str()
             .map(String::from)
+            .expect("Can't get current directory")
     }
 
     fn create_dir(path: &str) -> Result<(), std::io::Error> {
