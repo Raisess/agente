@@ -25,6 +25,7 @@ pub enum TaskResponse {
 pub struct Processor {
     __receiver: Arc<Mutex<Receiver<TaskResponse>>>,
     __sender: Sender<TaskResponse>,
+    __last_command_executed: Option<String>,
     agent: Box<dyn Agent>,
     context: Context,
     cmd: CMD,
@@ -36,6 +37,7 @@ impl Processor {
         Self {
             __receiver: Arc::new(Mutex::new(rx)),
             __sender: tx,
+            __last_command_executed: None,
             agent,
             context: Context::init(),
             cmd: CMD::default(),
@@ -79,12 +81,22 @@ impl Processor {
         }
 
         self.__sender.send(TaskResponse::Thinking).await?;
-        let (response, command) = self.process_prompt(task).await?;
+        let (response, commands) = self.process_prompt(task).await?;
         self.__sender
             .send(TaskResponse::MessageResponse(response))
             .await?;
 
-        if let Some(command) = command {
+        for command in commands {
+            // @NOTE: this will prevent bugs when the agent try to run the same
+            // command twice
+            let is_the_same_command = self
+                .__last_command_executed
+                .clone()
+                .is_some_and(|last_command| last_command == command);
+            if is_the_same_command {
+                return Ok(());
+            }
+
             self.__sender
                 .send(TaskResponse::CommandSignature(command.clone()))
                 .await?;
@@ -94,33 +106,33 @@ impl Processor {
             croped_output.truncate(MAX_COMMAND_OUTPUT_SIZE);
 
             self.__sender
-                .send(TaskResponse::CommandResponse((command, croped_output)))
+                .send(TaskResponse::CommandResponse((
+                    command.clone(),
+                    croped_output,
+                )))
                 .await?;
 
-            // @TODO: crop the output size when too big
-            return Ok(self.recursively_process_task(output).await?);
+            // @TODO: should crop the output size when too big and how much big?
+            self.recursively_process_task(output).await?;
+            self.__last_command_executed = Some(command);
         }
 
         Ok(())
     }
 
-    // @FIXME: should support return more than one command
     async fn process_prompt(
         &mut self,
         input: String,
-    ) -> Result<(String, Option<String>), Error> {
+    ) -> Result<(String, Vec<String>), Error> {
         self.context.summarize(&self.agent, false).await?;
 
         let response = self.context.ask(&self.agent, input).await?;
         let re = regex::Regex::new(r"Command\((.*)\)").unwrap();
-        if let Some(captured) = re.captures(&response.content.clone()) {
-            // println!("{captured:#?}");
-            return Ok((
-                response.content,
-                Some(captured.get(1).unwrap().as_str().to_string()),
-            ));
-        }
+        let commands: Vec<String> = re
+            .captures_iter(&response.content)
+            .map(|cap| cap[1].to_string())
+            .collect();
 
-        Ok((response.content, None))
+        Ok((response.content, commands))
     }
 }
