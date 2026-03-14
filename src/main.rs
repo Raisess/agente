@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use tokio::sync::mpsc;
 use tracing_subscriber;
 use tracing_subscriber::EnvFilter;
 
@@ -35,35 +34,17 @@ async fn main() {
     start_stdio(&mut processor).await;
 }
 
+const BANNER: &str = r#"
+┌───────────────────────────── AGENTE ─────────────────────────────┐
+│  [◉‿◉]   > I'ready!                                              │
+│ /|   |\                                                          │
+│  |   |                                                           │
+│ / \ / \                                                          │
+└──────────────────────────────────────────────────────────────────┘
+"#;
+
 /// Starts the stdio interface
 async fn start_stdio(processor: &mut Processor) -> () {
-    const BUFFER_SIZE: usize = 10;
-
-    let (tx, mut rx) = mpsc::channel::<String>(BUFFER_SIZE);
-    tokio::spawn(async move {
-        println!(r#"================================
-            AGENTE
-================================
-
-   [◉‿◉]
-  /|   |\
-   |   |
-  / \ / \
-
-I'm Ready.
-> Type something:"#);
-
-        loop {
-            let mut input = String::new();
-            std::io::stdin()
-                .read_line(&mut input)
-                .expect("Failed to read from stdin");
-            tx.send(input)
-                .await
-                .expect("Failed to send input to main thread");
-        }
-    });
-
     let listener = processor.listener();
     tokio::spawn(async move {
         let cloned_listener = listener.clone();
@@ -89,7 +70,20 @@ I'm Ready.
         }
     });
 
-    while let Some(prompt) = rx.recv().await {
+    use std::io::Write;
+    fn draw_input() {
+        print!("\r\x1b[K{}", "> Type something: ");
+        std::io::stdout().flush().unwrap();
+    }
+
+    print!("{BANNER}\n");
+    draw_input();
+
+    loop {
+        let mut prompt = String::new();
+        std::io::stdin()
+            .read_line(&mut prompt)
+            .expect("Failed to read from stdin");
         if prompt.is_empty() {
             continue;
         }
