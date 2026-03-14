@@ -109,7 +109,7 @@ impl Processor {
         &mut self,
         input: String,
     ) -> Result<(String, Option<String>), Error> {
-        self.context.summarize(&self.agent).await?;
+        self.context.summarize(&self.agent, false).await?;
 
         let response = self.context.ask(&self.agent, input).await?;
         let re = regex::Regex::new(r"Command\((.*)\)").unwrap();

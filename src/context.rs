@@ -7,7 +7,7 @@ use agente_infrastructure::config::Config;
 
 use crate::prompt::load;
 
-const MAX_MESSAGES: usize = 30;
+const MAX_MESSAGE_HISTORY_SIZE: usize = 50;
 
 pub struct Context {
     messages: Vec<MessageRequest>,
@@ -70,8 +70,9 @@ impl Context {
     pub async fn summarize(
         &mut self,
         agent: &Box<dyn Agent>,
+        force: bool,
     ) -> Result<(), AgentError> {
-        if self.messages.len() >= MAX_MESSAGES {
+        if self.messages.len() >= MAX_MESSAGE_HISTORY_SIZE || force {
             info!("summarizing...");
             let messages = self.messages.drain(1..).collect::<Vec<_>>();
             let result = agent
