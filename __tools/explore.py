@@ -5,7 +5,7 @@ import argparse
 
 FOLDERS_TO_IGNORE = [".git", "node_modules", "target", "build", "dist", ".next", ".cache", "__pycache__", "venv"]
 
-def find_command(directory, ignore_list):
+def find_command(directory: str, ignore_list: list[str]):
     cmd = ["find", directory]
 
     for ignore in ignore_list:

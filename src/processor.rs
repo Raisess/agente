@@ -25,7 +25,7 @@ pub enum TaskResponse {
 pub struct Processor {
     __receiver: Arc<Mutex<Receiver<TaskResponse>>>,
     __sender: Sender<TaskResponse>,
-    __last_tool_executed: Option<String>,
+    __last_tool_executed: Option<ToolCall>,
     agent: Box<dyn Agent>,
     context: Context,
     cmd: CMD,
@@ -89,10 +89,10 @@ impl Processor {
         for tool in tools {
             // @NOTE: this will prevent bugs when the agent try to run the same
             // tool twice
-            let is_the_same_tool = self
-                .__last_tool_executed
-                .clone()
-                .is_some_and(|last_tool| last_tool == tool);
+            let is_the_same_tool =
+                self.__last_tool_executed.clone().is_some_and(|last_tool| {
+                    last_tool.to_string() == tool.to_string()
+                });
             if is_the_same_tool {
                 return Err(Error::new(
                     "Was attempted to execute the exact same command twice",
@@ -101,12 +101,15 @@ impl Processor {
 
             self.__last_tool_executed = Some(tool.clone());
             self.__sender
-                .send(TaskResponse::CommandSignature(tool.clone()))
+                .send(TaskResponse::CommandSignature(tool.to_string()))
                 .await?;
 
             let (output, croped_output) = self.execute_tool(tool.clone())?;
             self.__sender
-                .send(TaskResponse::CommandResponse((tool, croped_output)))
+                .send(TaskResponse::CommandResponse((
+                    tool.to_string(),
+                    croped_output,
+                )))
                 .await?;
 
             // @TODO: should crop the output size when too big and how much big?
@@ -119,36 +122,89 @@ impl Processor {
     async fn process_prompt(
         &mut self,
         input: String,
-    ) -> Result<(String, Vec<String>), Error> {
+    ) -> Result<(String, Vec<ToolCall>), Error> {
         self.context.summarize(&self.agent, false).await?;
 
         let response = self.context.ask(&self.agent, input).await?;
-        let re = regex::Regex::new(r"(?s)Tool\((.*?)\)").unwrap();
-        let tools: Vec<String> = re
-            .captures_iter(&response.content)
-            .map(|cap| cap[1].to_string())
-            .collect();
+        let tools = parse_tools(&response.content);
 
         Ok((response.content, tools))
     }
 
-    fn execute_tool(&self, tool: String) -> Result<(String, String), Error> {
-        let mut parameters = tool.split(" ").collect::<Vec<_>>();
-        let tool_name = parameters[0];
-        let arguments = parameters.drain(1..).collect::<Vec<_>>().join(" ");
-
+    fn execute_tool(&self, tool: ToolCall) -> Result<(String, String), Error> {
+        println!("{tool:#?}");
         // @NOTE: execute a plain linux command if the tool don't match
-        const TOOLS: [&str; 3] = ["write", "read", "explore"];
-        let command = if TOOLS.contains(&tool_name) {
-            format!("python3 ./__tools/{}.py {}", tool_name, arguments)
-        } else {
-            tool
-        };
+        // const TOOLS: [&str; 3] = ["write", "read", "explore"];
 
-        let output = self.cmd.exec(&command)?;
+        let output = self.cmd.exec(&tool.to_string())?;
         let mut croped_output = output.clone();
         croped_output.truncate(MAX_COMMAND_OUTPUT_SIZE);
 
         Ok((output, croped_output))
     }
+}
+
+#[derive(Debug, Clone)]
+struct ToolCall {
+    pub name: String,
+    pub arg: Option<String>,
+    pub content: Option<String>,
+}
+
+impl ToString for ToolCall {
+    fn to_string(&self) -> String {
+        format!(
+            "python3 ./__tools/{}.py {} {}",
+            self.name,
+            self.arg.clone().unwrap_or("".to_string()),
+            self.content.clone().map(|c| format!("\"{c}\"")).unwrap_or("".to_string())
+        )
+    }
+}
+
+fn parse_tools(response_content: &str) -> Vec<ToolCall> {
+    let mut tools = Vec::new();
+    let re_tool = regex::Regex::new(r"(?m)^Tool:\s*(.*)").unwrap();
+
+    let lines: Vec<&str> = response_content.lines().collect();
+    let mut current_tool_start = None;
+
+    for (i, line) in lines.iter().enumerate() {
+        if re_tool.is_match(line) {
+            if let Some(start) = current_tool_start {
+                let block = &lines[start..i].join("\n");
+                tools.push(parse_tool_block(block));
+            }
+            current_tool_start = Some(i);
+        }
+    }
+
+    // push the last block if exists
+    if let Some(start) = current_tool_start {
+        let block = &lines[start..].join("\n");
+        tools.push(parse_tool_block(block));
+    }
+
+    tools
+}
+
+fn parse_tool_block(block: &str) -> ToolCall {
+    let mut lines: Vec<&str> = block.lines().collect();
+    let first_line = lines.remove(0).trim();
+
+    // Remove "Tool:" prefix
+    let rest = first_line.trim_start_matches("Tool:").trim();
+
+    // First word = tool name, rest = first argument (optional)
+    let mut parts = rest.splitn(2, ' ');
+    let name = parts.next().unwrap_or_default().to_string();
+    let arg = parts.next().map(|s| s.to_string());
+
+    let content = if lines.is_empty() {
+        None
+    } else {
+        Some(lines.join("\n"))
+    };
+
+    ToolCall { name, arg, content }
 }
