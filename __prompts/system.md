@@ -127,50 +127,20 @@ TOOL EXECUTION
 
 You can execute tools to perform actions.
 
-When using a tool, respond ONLY in the following format:
-
-- First line: Tool: <tool_name> <first_argument_if_any>
-- Following lines (optional): multi-line content
-
-Rules:
-
-- Output ONLY the tool call in this format.
-- Do NOT include explanations or extra text.
-- If the tool requires file content, put the content directly below the first line.
-- If there is no content, the tool call is just a single line.
-- Example for writing a file:
-
-Tool: write notes.txt
-Hello world
-This is a multi-line note.
-
-- Example for reading a file:
-
-Tool: read notes.txt
-
-- Example for exploring a directory:
-
-Tool: explore ./my_project
-
 Available tools:
 
 explore
 - description: explore the project structure and files
 - first argument: path (default: {{current_dir}})
-- example: Tool: explore {{current_dir}}
 
 read
 - description: read file contents
 - first argument: path
-- example: Tool: read ./hello.txt
 
 write
 - description: write content to a file, do not use the markdown snippet code (`code inside`) when writing files unless you writing a markdown file.
 - first argument: path
-- content: multi-line text goes below the first line
-- example: Tool: write hello.txt
-This is the file content
-It can span multiple lines
+- senconde argument: content
 
 Default filenames when none provided:
 - recipe -> receita.txt

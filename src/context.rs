@@ -38,7 +38,12 @@ impl Context {
         let ask_response = agent.ask(self.messages.clone()).await?;
         self.messages.push(MessageRequest {
             role: MessageRole::Assistant,
-            content: ask_response.content.clone(),
+            content: match ask_response {
+                AskResponse::Content(ref text) => text.clone(),
+                AskResponse::ToolCall((ref tool, _)) => {
+                    format!("Executed tool: {tool}")
+                }
+            },
         });
         info!("done!");
 
@@ -60,11 +65,16 @@ impl Context {
                 }])
                 .await?;
 
-            info!("summarized: {}", result.content);
-            self.messages.push(MessageRequest {
-                role: MessageRole::System,
-                content: result.content,
-            });
+            match result {
+                AskResponse::Content(text) => {
+                    info!("summarized: {}", text);
+                    self.messages.push(MessageRequest {
+                        role: MessageRole::System,
+                        content: text,
+                    });
+                }
+                _ => {}
+            }
         }
 
         Ok(())

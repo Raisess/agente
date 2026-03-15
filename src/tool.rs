@@ -25,9 +25,7 @@ impl ToString for ToolCall {
             "{} {} {}",
             self.name,
             self.arg.clone().unwrap_or("".to_string()),
-            self.content
-                .clone()
-                .unwrap_or("".to_string())
+            self.content.clone().unwrap_or("".to_string())
         )
     }
 }

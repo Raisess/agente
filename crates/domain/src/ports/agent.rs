@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use thiserror::Error;
 
 /// This is the Agent interface, it can represent a AI agent implementation,
@@ -31,9 +33,11 @@ pub enum AgentError {
     ServicesOverloaded,
 }
 
-#[derive(Debug, Default)]
-pub struct AskResponse {
-    pub content: String,
+#[derive(Debug)]
+pub enum AskResponse {
+    Content(String),
+    /// tool name, arguments
+    ToolCall((String, HashMap<String, String>)),
 }
 
 #[derive(Debug, Clone)]

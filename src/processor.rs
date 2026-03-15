@@ -1,17 +1,17 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
 
 use agente_domain::error::Error;
-use agente_domain::ports::agent::Agent;
-use agente_domain::ports::io::Executor;
-use agente_infrastructure::adapters::cmd::CMD;
+use agente_domain::ports::agent::{Agent, AskResponse};
+// use agente_domain::ports::io::Executor;
+// use agente_infrastructure::adapters::cmd::CMD;
 
 use crate::context::Context;
-use crate::tool::{ToolCall, parse_tools};
 
-const MAX_COMMAND_OUTPUT_SIZE: usize = 2500;
+// const MAX_COMMAND_OUTPUT_SIZE: usize = 2500;
 
 // @TODO: link a message id, will be useful for websocket server to know message
 // and tool contexts
@@ -26,10 +26,9 @@ pub enum TaskResponse {
 pub struct Processor {
     __receiver: Arc<Mutex<Receiver<TaskResponse>>>,
     __sender: Sender<TaskResponse>,
-    __last_tool_executed: Option<ToolCall>,
     agent: Box<dyn Agent>,
     context: Context,
-    cmd: CMD,
+    // cmd: CMD,
 }
 
 impl Processor {
@@ -38,10 +37,9 @@ impl Processor {
         Self {
             __receiver: Arc::new(Mutex::new(rx)),
             __sender: tx,
-            __last_tool_executed: None,
             agent,
             context: Context::init(),
-            cmd: CMD::default(),
+            // cmd: CMD::default(),
         }
     }
 
@@ -70,39 +68,28 @@ impl Processor {
         }
 
         self.__sender.send(TaskResponse::Thinking).await?;
-        let (response, tools) = self.process_prompt(task).await?;
-        self.__sender
-            .send(TaskResponse::MessageResponse(response))
-            .await?;
-
-        for tool in tools {
-            // @NOTE: this will prevent bugs when the agent try to run the same
-            // tool twice
-            let is_the_same_tool =
-                self.__last_tool_executed.clone().is_some_and(|last_tool| {
-                    last_tool.to_string() == tool.to_string()
-                });
-            if is_the_same_tool {
-                return Err(Error::new(
-                    "Was attempted to execute the exact same command twice",
-                ));
+        let response = self.process_prompt(task).await?;
+        match response {
+            AskResponse::Content(text) => {
+                self.__sender
+                    .send(TaskResponse::MessageResponse(text))
+                    .await?;
             }
+            AskResponse::ToolCall((tool, arguments)) => {
+                self.__sender
+                    .send(TaskResponse::CommandSignature(tool.to_string()))
+                    .await?;
 
-            self.__last_tool_executed = Some(tool.clone());
-            self.__sender
-                .send(TaskResponse::CommandSignature(tool.to_string()))
-                .await?;
+                let (output, croped_output) =
+                    self.execute_tool(tool.clone(), arguments.into())?;
+                self.__sender
+                    .send(TaskResponse::CommandResponse((tool, croped_output)))
+                    .await?;
 
-            let (output, croped_output) = self.execute_tool(tool.clone())?;
-            self.__sender
-                .send(TaskResponse::CommandResponse((
-                    tool.to_string(),
-                    croped_output,
-                )))
-                .await?;
-
-            // @TODO: should crop the output size when too big and how much big?
-            self.recursively_process_task(output).await?;
+                // @TODO: should crop the output size when too big and how much
+                // big?
+                self.recursively_process_task(output).await?;
+            }
         }
 
         Ok(())
@@ -111,23 +98,28 @@ impl Processor {
     async fn process_prompt(
         &mut self,
         input: String,
-    ) -> Result<(String, Vec<ToolCall>), Error> {
+    ) -> Result<AskResponse, Error> {
         self.context.summarize(&self.agent, false).await?;
 
         let response = self.context.ask(&self.agent, input).await?;
-        let tools = parse_tools(&response.content);
-
-        Ok((response.content, tools))
+        Ok(response)
     }
 
-    fn execute_tool(&self, tool: ToolCall) -> Result<(String, String), Error> {
+    // @TODO: make tools cli with --flags for parameter conversion
+    fn execute_tool(
+        &self,
+        tool: String,
+        arguments: HashMap<String, String>,
+    ) -> Result<(String, String), Error> {
+        println!("{tool} {arguments:#?}");
+        Ok(("".to_string(), "".to_string()))
         // @NOTE: execute a plain linux command if the tool don't match
         // const TOOLS: [&str; 3] = ["write", "read", "explore"];
 
-        let output = self.cmd.exec(&tool.to_command())?;
-        let mut croped_output = output.clone();
-        croped_output.truncate(MAX_COMMAND_OUTPUT_SIZE);
-
-        Ok((output, croped_output))
+        // let output = self.cmd.exec(&tool.to_command())?;
+        // let mut croped_output = output.clone();
+        // croped_output.truncate(MAX_COMMAND_OUTPUT_SIZE);
+        //
+        // Ok((output, croped_output))
     }
 }
