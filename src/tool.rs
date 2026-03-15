@@ -13,7 +13,7 @@ impl ToolCall {
             self.arg.clone().unwrap_or("".to_string()),
             self.content
                 .clone()
-                .map(|c| format!("\"{c}\""))
+                .map(|c| format!("<<EOF\n{c}\nEOF"))
                 .unwrap_or("".to_string())
         )
     }
@@ -27,7 +27,6 @@ impl ToString for ToolCall {
             self.arg.clone().unwrap_or("".to_string()),
             self.content
                 .clone()
-                .map(|c| format!("\"{c}\""))
                 .unwrap_or("".to_string())
         )
     }

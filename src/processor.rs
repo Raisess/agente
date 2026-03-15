@@ -93,8 +93,6 @@ impl Processor {
                 .send(TaskResponse::CommandSignature(tool.to_string()))
                 .await?;
 
-            // @TODO: implement a tool planner to generate concise tool format
-            // and parameters appart of the system prompt
             let (output, croped_output) = self.execute_tool(tool.clone())?;
             self.__sender
                 .send(TaskResponse::CommandResponse((
