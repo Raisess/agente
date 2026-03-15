@@ -50,22 +50,10 @@ impl Processor {
     }
 
     pub async fn handle(&mut self, prompt: String) -> Result<(), Error> {
-        // @FIXME: removed the task planner since it was causing a lot of
-        // problems generating too many things to do and removing the ability to
-        // talk from the model.
-        // let tasks_text =
-        // self.context.generate_tasks(&self.agent, prompt).await?;
-        // println!("{}", tasks_text.content);
-
-        // let tasks_queue = tasks_text.content.split(";").map(|task|
-        // task.trim());
-        for task in vec![prompt] {
-            match self.recursively_process_task(task.to_string()).await {
-                Ok(_) => {}
-                Err(error) => {
-                    self.__sender.send(TaskResponse::Error(error)).await?;
-                    break;
-                }
+        match self.recursively_process_task(prompt).await {
+            Ok(_) => {}
+            Err(error) => {
+                self.__sender.send(TaskResponse::Error(error)).await?;
             }
         }
 
@@ -105,6 +93,8 @@ impl Processor {
                 .send(TaskResponse::CommandSignature(tool.to_string()))
                 .await?;
 
+            // @TODO: implement a tool planner to generate concise tool format
+            // and parameters appart of the system prompt
             let (output, croped_output) = self.execute_tool(tool.clone())?;
             self.__sender
                 .send(TaskResponse::CommandResponse((

@@ -23,28 +23,6 @@ impl Context {
         }
     }
 
-    pub async fn generate_tasks(
-        &mut self,
-        agent: &Box<dyn Agent>,
-        prompt: String,
-    ) -> Result<AskResponse, AgentError> {
-        info!("generating tasks...");
-        let messages = vec![
-            MessageRequest {
-                role: MessageRole::System,
-                content: task_generator_prompt(),
-            },
-            MessageRequest {
-                role: MessageRole::User,
-                content: prompt,
-            },
-        ];
-        let ask_response = agent.ask(messages).await?;
-        info!("generated!");
-
-        Ok(ask_response)
-    }
-
     pub async fn ask(
         &mut self,
         agent: &Box<dyn Agent>,
@@ -107,14 +85,6 @@ fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
         vec![("messages", messages_prompt)],
     )
     .expect("Failed to load summarizer prompt")
-}
-
-fn task_generator_prompt() -> String {
-    load(
-        "__prompts/task_generator.md",
-        vec![("current_dir", Config::pwd())],
-    )
-    .expect("Failed to load task generator prompt")
 }
 
 fn system_prompt() -> String {
