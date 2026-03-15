@@ -134,11 +134,18 @@ impl Processor {
 
     fn execute_tool(&self, tool: String) -> Result<(String, String), Error> {
         let mut parameters = tool.split(" ").collect::<Vec<_>>();
+        let tool_name = parameters[0];
         let arguments = parameters.drain(1..).collect::<Vec<_>>().join(" ");
-        let output = self.cmd.exec(&format!(
-            "python3 ./__tools/{}.py {}",
-            parameters[0], arguments
-        ))?;
+
+        // @NOTE: execute a plain linux command if the tool don't match
+        const TOOLS: [&str; 3] = ["write", "read", "explore"];
+        let command = if TOOLS.contains(&tool_name) {
+            format!("python3 ./__tools/{}.py {}", tool_name, arguments)
+        } else {
+            tool
+        };
+
+        let output = self.cmd.exec(&command)?;
         let mut croped_output = output.clone();
         croped_output.truncate(MAX_COMMAND_OUTPUT_SIZE);
 

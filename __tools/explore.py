@@ -28,7 +28,6 @@ def main():
     parser = argparse.ArgumentParser(
         description="Run find while ignoring specific folders"
     )
-
     parser.add_argument(
         "directory",
         help="Directory to search"

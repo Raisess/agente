@@ -95,9 +95,12 @@ Rules:
 
 Available tools:
 
-- explore: Can explore the project structure and files, always use the {{current_dir}} as the first parameter unless the user ask it to be different
+- explore: Can explore the project structure and files, always use the {{current_dir}} as the first parameter unless the user ask it to be different.
+    - parameters: path
 - read: Read file contents, use it whenever you need to read a file content.
+    - parameters: path
 - write: Write content to a file, use it when the user request something to be writed.
+    - parameters: path and contents
 
 If the task only requires knowledge or reasoning, respond normally.
 
