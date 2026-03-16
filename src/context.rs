@@ -4,8 +4,7 @@ use agente_domain::ports::agent::{
     Agent, AgentError, AskResponse, MessageRequest, MessageRole,
 };
 use agente_infrastructure::config::Config;
-
-use crate::prompt::load;
+use agente_infrastructure::load_file::load;
 
 const MAX_MESSAGE_HISTORY_SIZE: usize = 50;
 

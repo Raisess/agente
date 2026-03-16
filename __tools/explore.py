@@ -29,12 +29,13 @@ def main():
     description="Run find while ignoring specific folders"
   )
   parser.add_argument(
-    "directory",
+    "--path",
+    type=str,
     help="Directory to search"
   )
 
   args = parser.parse_args()
-  output = find_command(args.directory, FOLDERS_TO_IGNORE)
+  output = find_command(args.path, FOLDERS_TO_IGNORE)
   print(output)
 
 

@@ -19,7 +19,8 @@ def read_file(path: str) -> str:
 def main():
   parser = argparse.ArgumentParser(description="Read a file content")
   parser.add_argument(
-    "path",
+    "--path",
+    type=str,
     help="File path to read"
   )
 

@@ -6,12 +6,12 @@ use tokio::sync::mpsc::{Receiver, Sender};
 
 use agente_domain::error::Error;
 use agente_domain::ports::agent::{Agent, AskResponse};
-// use agente_domain::ports::io::Executor;
-// use agente_infrastructure::adapters::cmd::CMD;
+use agente_domain::ports::io::Executor;
+use agente_infrastructure::adapters::cmd::CMD;
 
 use crate::context::Context;
 
-// const MAX_COMMAND_OUTPUT_SIZE: usize = 2500;
+const MAX_COMMAND_OUTPUT_SIZE: usize = 2500;
 
 // @TODO: link a message id, will be useful for websocket server to know message
 // and tool contexts
@@ -28,7 +28,7 @@ pub struct Processor {
     __sender: Sender<TaskResponse>,
     agent: Box<dyn Agent>,
     context: Context,
-    // cmd: CMD,
+    cmd: CMD,
 }
 
 impl Processor {
@@ -39,7 +39,7 @@ impl Processor {
             __sender: tx,
             agent,
             context: Context::init(),
-            // cmd: CMD::default(),
+            cmd: CMD::default(),
         }
     }
 
@@ -105,21 +105,20 @@ impl Processor {
         Ok(response)
     }
 
-    // @TODO: make tools cli with --flags for parameter conversion
     fn execute_tool(
         &self,
         tool: String,
         arguments: HashMap<String, String>,
     ) -> Result<(String, String), Error> {
-        println!("{tool} {arguments:#?}");
-        Ok(("".to_string(), "".to_string()))
-        // @NOTE: execute a plain linux command if the tool don't match
-        // const TOOLS: [&str; 3] = ["write", "read", "explore"];
+        let mut command_sig = format!("python3 ./__tools/{tool}.py");
+        for (key, value) in arguments.iter() {
+            command_sig.push_str(&format!(" --{key} \"{value}\""));
+        }
 
-        // let output = self.cmd.exec(&tool.to_command())?;
-        // let mut croped_output = output.clone();
-        // croped_output.truncate(MAX_COMMAND_OUTPUT_SIZE);
-        //
-        // Ok((output, croped_output))
+        let output = self.cmd.exec(&command_sig)?;
+        let mut croped_output = output.clone();
+        croped_output.truncate(MAX_COMMAND_OUTPUT_SIZE);
+
+        Ok((output, croped_output))
     }
 }

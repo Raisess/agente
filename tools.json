@@ -1,0 +1,39 @@
+[
+  {
+    "type": "function",
+    "name": "explore",
+    "description": "Explore the project contents, folders and files.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {"type": "string", "description": "The path to explore"}
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "type": "function",
+    "name": "read",
+    "description": "Read a file content.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {"type": "string", "description": "The path of the file to read"}
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "type": "function",
+    "name": "write",
+    "description": "Write content to a file.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {"type": "string", "description": "The path of the file to read"},
+        "content": {"type": "string", "description": "The content to write to the file"}
+      },
+      "required": ["path", "content"]
+    }
+  }
+]

@@ -17,11 +17,13 @@ def write_file(path: str, content: str):
 def main():
   parser = argparse.ArgumentParser(description="Write content to a file")
   parser.add_argument(
-    "path",
+    "--path",
+    type=str,
     help="File path to write"
   )
   parser.add_argument(
-    "content",
+    "--content",
+    type=str,
     help="Content to write into the file"
   )
 

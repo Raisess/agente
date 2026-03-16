@@ -6,6 +6,8 @@ use agente_domain::ports::agent::{
     Agent, AgentError, AskResponse, MessageRequest,
 };
 
+use crate::load_file::load;
+
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct ChatGPTConfig {
     #[serde(rename = "chat_gpt::api_key")]
@@ -49,8 +51,6 @@ impl ChatGPT {
             })?;
 
         let output = data.get("output").unwrap()[0].clone();
-        println!("{:#?}", output);
-
         Ok(serde_json::from_value(output).unwrap())
     }
 
@@ -67,26 +67,18 @@ impl ChatGPT {
                 })
             })
             .collect::<Vec<_>>();
-        // @TODO: add tools and implement a shell tool to command the running
-        // machine
+
+        let tools = serde_json::from_str::<serde_json::Value>(
+            &load("./tools.json", vec![])
+                .expect("Failed to load tools.json file"),
+        )
+        .expect("Failed to parse tools json");
+
         let json = serde_json::json!({
             "input": input,
             "model": self.config.model, // gpt-3.5-turbo
+            "tools": tools,
             "tool_choice": "auto",
-            "tools": vec![
-                serde_json::json!({
-                    "type": "function",
-                    "name": "explore",
-                    "description": "Explore the project contents, folders and files.",
-                    "parameters": {
-                      "type": "object",
-                      "properties": {
-                        "path": {"type": "string", "description": "The path to explore"}
-                      },
-                      "required": ["path"]
-                    }
-                })
-            ]
         });
 
         self.client
