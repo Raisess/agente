@@ -23,16 +23,24 @@ def tic_tac_toe():
     player = 'X'
     print_board(board)
     for _ in range(9):
-        row, col = map(int, input(f'Player {player}, enter row and column (0-2): ').split())
-        if board[row][col] != ' ':
-            print('Invalid move! Try again.')
-            continue
-        board[row][col] = player
-        print_board(board)
-        if check_winner(board, player):
-            print(f'Player {player} wins!')
-            break
-        player = 'O' if player == 'X' else 'X'
+        while True:
+            try:
+                row, col = map(int, input(f'Player {player}, enter row and column (0-2): ').split())
+                if row not in range(3) or col not in range(3):
+                    raise ValueError('Row or column value out of range')
+                if board[row][col] != ' ':
+                    print('Invalid move! Try again.')
+                    continue
+                board[row][col] = player
+                print_board(board)
+                if check_winner(board, player):
+                    print(f'Player {player} wins!')
+                    break
+                player = 'O' if player == 'X' else 'X'
+                break
+            except ValueError as ve:
+                print(ve)
+
     else:
         print('It is a tie!')
 

@@ -50,8 +50,18 @@ impl ChatGPT {
                 AgentError::FailedToParseResponse(error.to_string())
             })?;
 
-        let output = data.get("output").unwrap()[0].clone();
-        Ok(serde_json::from_value(output).unwrap())
+        let output = data.get("output").unwrap().get(0);
+        match output {
+            Some(valid_output) => {
+                Ok(serde_json::from_value(valid_output.clone()).unwrap())
+            }
+            None => {
+                eprintln!("Response: {data:#?}");
+                Err(AgentError::FailedToParseResponse(
+                    "Invalid response".to_string(),
+                ))
+            }
+        }
     }
 
     async fn send_message(
