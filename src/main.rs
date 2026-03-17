@@ -71,7 +71,7 @@ async fn start_stdio(processor: &mut Processor) -> () {
     "
 ┌───────────────────────────── \x1b[32mAGENTE\x1b[0m ─────────────────────────────┐
 │  \x1b[32m[◉‿◉]\x1b[0m   > I'ready!                                              │
-│ \x1b[32m/|   |\\\x1b[0m  Running at: localhost:{:<34}│
+│ \x1b[32m/|   |\\\x1b[0m  Running at: http://localhost:{:<27}│
 │ \x1b[32m |   |\x1b[0m   Dir: {:<51}│
 │ \x1b[32m/ \\ / \\\x1b[0m                                                          │
 └──────────────────────────────────────────────────────────────────┘
@@ -92,7 +92,7 @@ async fn start_stdio(processor: &mut Processor) -> () {
             continue;
         }
 
-        let _ = processor.handle(prompt).await;
+        let _ = processor.handle(prompt.trim().to_string()).await;
     }
 }
 
