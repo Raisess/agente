@@ -75,20 +75,25 @@ impl Processor {
                     .send(TaskResponse::MessageResponse(text))
                     .await?;
             }
-            AskResponse::ToolCall((tool, arguments)) => {
-                self.__sender
-                    .send(TaskResponse::CommandSignature(tool.to_string()))
-                    .await?;
+            AskResponse::ToolCall(tools) => {
+                for (tool, arguments) in tools {
+                    self.__sender
+                        .send(TaskResponse::CommandSignature(tool.to_string()))
+                        .await?;
 
-                let (output, croped_output) =
-                    self.execute_tool(tool.clone(), arguments.into())?;
-                self.__sender
-                    .send(TaskResponse::CommandResponse((tool, croped_output)))
-                    .await?;
+                    let (output, croped_output) =
+                        self.execute_tool(tool.clone(), arguments.into())?;
+                    self.__sender
+                        .send(TaskResponse::CommandResponse((
+                            tool,
+                            croped_output,
+                        )))
+                        .await?;
 
-                // @TODO: should crop the output size when too big and how much
-                // big?
-                self.recursively_process_task(output).await?;
+                    // @TODO: should crop the output size when too big and how
+                    // much big?
+                    self.recursively_process_task(output).await?;
+                }
             }
         }
 

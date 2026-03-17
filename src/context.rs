@@ -39,8 +39,16 @@ impl Context {
             role: MessageRole::Assistant,
             content: match ask_response {
                 AskResponse::Content(ref text) => text.clone(),
-                AskResponse::ToolCall((ref tool, _)) => {
-                    format!("Executed tool: {tool}")
+                AskResponse::ToolCall(ref tools) => {
+                    // @FIXME: this should consider tool arguments
+                    format!(
+                        "Executed tools: {}",
+                        tools
+                            .iter()
+                            .map(|(tool, _)| tool.clone())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )
                 }
             },
         });

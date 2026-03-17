@@ -32,7 +32,7 @@ impl ChatGPT {
     async fn handle_message_request(
         &self,
         messages: Vec<MessageRequest>,
-    ) -> Result<Output, AgentError> {
+    ) -> Result<Vec<Output>, AgentError> {
         let response = self
             .send_message(messages)
             .await
@@ -50,7 +50,7 @@ impl ChatGPT {
                 AgentError::FailedToParseResponse(error.to_string())
             })?;
 
-        let output = data.get("output").unwrap().get(0);
+        let output = data.get("output");
         match output {
             Some(valid_output) => {
                 Ok(serde_json::from_value(valid_output.clone()).unwrap())
@@ -108,16 +108,29 @@ impl Agent for ChatGPT {
         messages: Vec<MessageRequest>,
     ) -> Result<AskResponse, AgentError> {
         let output = self.handle_message_request(messages).await?;
-        Ok(match output {
+
+        Ok(match &output[0] {
             Output::Text { content, .. } => {
                 AskResponse::Content(content[0].text.clone().unwrap())
             }
-            Output::Tool {
-                name, arguments, ..
-            } => AskResponse::ToolCall((
-                name,
-                serde_json::from_str(&arguments).unwrap(),
-            )),
+            Output::Tool { .. } => AskResponse::ToolCall(
+                output
+                    .iter()
+                    .filter_map(|tool| {
+                        if let Output::Tool {
+                            name, arguments, ..
+                        } = tool
+                        {
+                            Some((
+                                name.clone(),
+                                serde_json::from_str(arguments).unwrap(),
+                            ))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>(),
+            ),
         })
     }
 }

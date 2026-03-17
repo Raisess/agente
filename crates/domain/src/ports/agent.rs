@@ -37,7 +37,7 @@ pub enum AgentError {
 pub enum AskResponse {
     Content(String),
     /// tool name, arguments
-    ToolCall((String, HashMap<String, String>)),
+    ToolCall(Vec<(String, HashMap<String, String>)>),
 }
 
 #[derive(Debug, Clone)]
