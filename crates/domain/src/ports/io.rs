@@ -10,8 +10,17 @@ pub trait Writer: Send + Sync {
     fn write(&self, path: &str, data: &[u8]) -> Result<(), std::io::Error>;
 }
 
+pub enum ExecutorArgument {
+    Arg(String),
+    Flag((String, String)),
+}
+
 /// Represents a host machine command execution.
 pub trait Executor: Send + Sync {
     /// Execute a command on the host machine.
-    fn exec(&self, cmd: &str) -> Result<String, std::io::Error>;
+    fn exec(
+        &self,
+        cmd: &str,
+        args: Vec<ExecutorArgument>,
+    ) -> Result<String, std::io::Error>;
 }

@@ -6,7 +6,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 
 use agente_domain::error::Error;
 use agente_domain::ports::agent::{Agent, AskResponse};
-use agente_domain::ports::io::Executor;
+use agente_domain::ports::io::{Executor, ExecutorArgument};
 use agente_infrastructure::adapters::cmd::CMD;
 
 use crate::context::Context;
@@ -115,12 +115,17 @@ impl Processor {
         tool: String,
         arguments: HashMap<String, String>,
     ) -> Result<(String, String), Error> {
-        let mut command_sig = format!("python3 ./__tools/{tool}.py");
-        for (key, value) in arguments.iter() {
-            command_sig.push_str(&format!(" --{key} \"{value}\""));
-        }
+        let mut script =
+            vec![ExecutorArgument::Arg(format!("./__tools/{tool}.py"))];
+        let mut flags = arguments
+            .iter()
+            .map(|(key, value)| {
+                ExecutorArgument::Flag((key.clone(), value.clone()))
+            })
+            .collect::<Vec<_>>();
 
-        let output = self.cmd.exec(&command_sig)?;
+        script.append(&mut flags);
+        let output = self.cmd.exec("python3", script)?;
         let mut croped_output = output.clone();
         croped_output.truncate(MAX_COMMAND_OUTPUT_SIZE);
 
