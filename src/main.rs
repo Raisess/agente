@@ -34,15 +34,6 @@ async fn main() {
     start_stdio(&mut processor).await;
 }
 
-const BANNER: &str = r#"
-┌───────────────────────────── AGENTE ─────────────────────────────┐
-│  [◉‿◉]   > I'ready!                                              │
-│ /|   |\                                                          │
-│  |   |                                                           │
-│ / \ / \                                                          │
-└──────────────────────────────────────────────────────────────────┘
-"#;
-
 /// Starts the stdio interface
 async fn start_stdio(processor: &mut Processor) -> () {
     let listener = processor.listener();
@@ -76,7 +67,20 @@ async fn start_stdio(processor: &mut Processor) -> () {
         std::io::stdout().flush().unwrap();
     }
 
-    print!("{BANNER}\n");
+    let banner = format!(
+    "
+┌───────────────────────────── \x1b[32mAGENTE\x1b[0m ─────────────────────────────┐
+│  \x1b[32m[◉‿◉]\x1b[0m   > I'ready!                                              │
+│ \x1b[32m/|   |\\\x1b[0m  Running at: localhost:{:<34}│
+│ \x1b[32m |   |\x1b[0m   Dir: {:<51}│
+│ \x1b[32m/ \\ / \\\x1b[0m                                                          │
+└──────────────────────────────────────────────────────────────────┘
+",
+    "0000",
+    Config::pwd()
+);
+
+    print!("{banner}\n");
     draw_input();
 
     loop {
