@@ -22,6 +22,7 @@ agente-domain = { path = "crates/domain" }
 agente-infrastructure = { path = "crates/infrastructure" }
 async-recursion = "1.1.1"
 async-trait = { workspace = true }
+clap = { version = "4", features = ["derive"] }
 regex = "1.12.3"
 tokio = { workspace = true }
 tracing = "0.1.44"

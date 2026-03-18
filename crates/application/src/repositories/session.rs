@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use agente_domain::error::Error;
 use agente_domain::models::session::Session;
 use agente_domain::ports::database::Database;
@@ -40,11 +42,14 @@ impl SessionRepository {
 
     pub async fn find_by_id(
         &self,
-        id: uuid::Uuid,
+        id: String,
     ) -> Result<Option<Session>, Error> {
         let sql = "SELECT * FROM sessions WHERE id = ? LIMIT 1;";
+
+        let uuid = uuid::Uuid::from_str(&id)
+            .expect("Failed to convert string into uuid");
         Ok(sqlx::query_as::<_, Session>(&sql)
-            .bind(id)
+            .bind(uuid)
             .fetch_optional(&*self.db.expose())
             .await?)
     }
