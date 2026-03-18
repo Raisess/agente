@@ -1,10 +1,13 @@
 use std::sync::Arc;
 
+use agente_domain::models::session::Session;
 use tracing_subscriber;
 use tracing_subscriber::EnvFilter;
 
 use agente::processor::{Processor, TaskResponse};
+use agente_application::repositories::session::SessionRepository;
 use agente_infrastructure::adapters::agents::chat_gpt::ChatGPT;
+use agente_infrastructure::adapters::database::sqlite::SqliteDatabase;
 use agente_infrastructure::adapters::file_system::FileSystem;
 use agente_infrastructure::config::Config;
 
@@ -28,14 +31,31 @@ async fn main() {
         panic!("No API Key provided");
     }
 
+    let sqlite = Box::new(
+        SqliteDatabase::new("main.db")
+            .await
+            .expect("Failed to initialize sqlite database"),
+    );
+    let session_repository = Arc::new(SessionRepository::new(sqlite));
+    session_repository
+        .setup()
+        .await
+        .expect("Failed to setup session repository");
+
+    let session = Session::new(Config::pwd());
+    session_repository
+        .create(&session)
+        .await
+        .expect("Failed to store session into database");
+
     let agent = ChatGPT::new(config.chat_gpt.clone());
     let mut processor = Processor::init(Box::new(agent));
 
-    start_stdio(&mut processor).await;
+    start_stdio(&session, &mut processor).await;
 }
 
 /// Starts the stdio interface
-async fn start_stdio(processor: &mut Processor) -> () {
+async fn start_stdio(session: &Session, processor: &mut Processor) -> () {
     let listener = processor.listener();
     tokio::spawn(async move {
         let cloned_listener = listener.clone();
@@ -71,13 +91,14 @@ async fn start_stdio(processor: &mut Processor) -> () {
     "
 ┌───────────────────────────── \x1b[32mAGENTE\x1b[0m ─────────────────────────────┐
 │  \x1b[32m[◉‿◉]\x1b[0m   > I'ready!                                              │
-│ \x1b[32m/|   |\\\x1b[0m  Running at: http://localhost:{:<27}│
-│ \x1b[32m |   |\x1b[0m   Dir: {:<51}│
-│ \x1b[32m/ \\ / \\\x1b[0m                                                          │
+│ \x1b[32m/|   |\\\x1b[0m  Session: {}           │
+│ \x1b[32m |   |\x1b[0m   Running at: http://localhost:{:<27}│
+│ \x1b[32m/ \\ / \\\x1b[0m  Working dir: {:<43}│
 └──────────────────────────────────────────────────────────────────┘
 ",
-    "0000",
-    Config::pwd()
+    session.id,
+    Config::port(),
+    Config::pwd(),
 );
 
     print!("{banner}\n");

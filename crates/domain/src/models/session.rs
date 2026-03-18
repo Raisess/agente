@@ -19,8 +19,8 @@ impl Session {
             id: Uuid::new_v4(),
             started_at: Utc::now(),
             updated_at: Utc::now(),
-            username: "TODO".to_string(),
-            hostname: "TODO".to_string(),
+            username: whoami::username().expect("should get the username"),
+            hostname: whoami::hostname().expect("should get the hostname"),
             directory,
         }
     }

@@ -47,6 +47,11 @@ impl Config {
             .expect("Can't get current directory")
     }
 
+    // @TODO: add a default port
+    pub fn port() -> String {
+        std::env::var("PORT").unwrap_or("0000".to_string())
+    }
+
     fn create_dir(path: &str) -> Result<(), std::io::Error> {
         match std::fs::create_dir(path) {
             Ok(_) => {}

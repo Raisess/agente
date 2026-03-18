@@ -12,3 +12,4 @@ serde_json = { workspace = true }
 sqlx = { workspace = true }
 thiserror = "2.0.17"
 uuid = { workspace = true }
+whoami = "2.1.1"
