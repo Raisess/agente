@@ -7,9 +7,9 @@ use tracing_subscriber::EnvFilter;
 use agente::processor::{Processor, TaskResponse};
 use agente_application::repositories::session::SessionRepository;
 use agente_domain::models::session::Session;
-use agente_infrastructure::adapters::agents::chat_gpt::ChatGPT;
 use agente_infrastructure::adapters::database::sqlite::SqliteDatabase;
 use agente_infrastructure::adapters::file_system::FileSystem;
+use agente_infrastructure::adapters::providers::chat_gpt::ChatGPT;
 use agente_infrastructure::config::Config;
 
 #[derive(Parser, Debug)]
@@ -35,7 +35,7 @@ async fn main() {
         ),
     };
 
-    // @TODO: support select agent type
+    // @TODO: support select provider
     if config.chat_gpt.api_key.is_empty() {
         panic!("No API Key provided");
     }

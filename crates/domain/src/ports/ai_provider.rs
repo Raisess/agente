@@ -5,18 +5,18 @@ use thiserror::Error;
 /// This is the Agent interface, it can represent a AI agent implementation,
 /// e.g.: ChatGPT, DeepSeek, etc.
 #[async_trait::async_trait]
-pub trait Agent: Send + Sync {
+pub trait AiProvider: Send + Sync {
     /// Ask the agent with important info like file contents, summaries, etc
     /// and update the previous message context.
     /// @NOTE: Use send the base prompt to feed the agent instructions set.
     async fn ask(
         &self,
         messages: Vec<MessageRequest>,
-    ) -> Result<AskResponse, AgentError>;
+    ) -> Result<AskResponse, AiProviderError>;
 }
 
 #[derive(Clone, Debug, Error)]
-pub enum AgentError {
+pub enum AiProviderError {
     #[error("Other error: {0}")]
     Other(String),
     #[error("The json response is not valid: {0}")]

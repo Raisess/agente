@@ -5,7 +5,7 @@ use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
 
 use agente_domain::error::Error;
-use agente_domain::ports::agent::{Agent, AskResponse};
+use agente_domain::ports::ai_provider::{AiProvider, AskResponse};
 use agente_domain::ports::io::{Executor, ExecutorArgument};
 use agente_infrastructure::adapters::cmd::CMD;
 
@@ -26,13 +26,13 @@ pub enum TaskResponse {
 pub struct Processor {
     __receiver: Arc<Mutex<Receiver<TaskResponse>>>,
     __sender: Sender<TaskResponse>,
-    agent: Box<dyn Agent>,
+    agent: Box<dyn AiProvider>,
     context: Context,
     cmd: CMD,
 }
 
 impl Processor {
-    pub fn init(agent: Box<dyn Agent>) -> Self {
+    pub fn init(agent: Box<dyn AiProvider>) -> Self {
         let (tx, rx) = tokio::sync::mpsc::channel::<TaskResponse>(10);
         Self {
             __receiver: Arc::new(Mutex::new(rx)),

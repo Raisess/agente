@@ -1,7 +1,7 @@
 use tracing::info;
 
-use agente_domain::ports::agent::{
-    Agent, AgentError, AskResponse, MessageRequest, MessageRole,
+use agente_domain::ports::ai_provider::{
+    AiProvider, AiProviderError, AskResponse, MessageRequest, MessageRole,
 };
 use agente_infrastructure::config::Config;
 use agente_infrastructure::load_file::load;
@@ -24,9 +24,9 @@ impl Context {
 
     pub async fn ask(
         &mut self,
-        agent: &Box<dyn Agent>,
+        agent: &Box<dyn AiProvider>,
         prompt: String,
-    ) -> Result<AskResponse, AgentError> {
+    ) -> Result<AskResponse, AiProviderError> {
         info!("asking...");
         self.messages.push(MessageRequest {
             role: MessageRole::User,
@@ -59,9 +59,9 @@ impl Context {
 
     pub async fn summarize(
         &mut self,
-        agent: &Box<dyn Agent>,
+        agent: &Box<dyn AiProvider>,
         force: bool,
-    ) -> Result<(), AgentError> {
+    ) -> Result<(), AiProviderError> {
         if self.messages.len() >= MAX_MESSAGE_HISTORY_SIZE || force {
             info!("summarizing...");
             let messages = self.messages.drain(1..).collect::<Vec<_>>();

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use agente_domain::ports::io::{Reader, Writer};
 
-use crate::adapters::agents::chat_gpt::ChatGPTConfig;
+use crate::adapters::providers::chat_gpt::ChatGPTConfig;
 
 /// Represents the agent settings
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]

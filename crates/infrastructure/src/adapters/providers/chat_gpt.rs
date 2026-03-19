@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use agente_domain::ports::agent::{
-    Agent, AgentError, AskResponse, MessageRequest,
+use agente_domain::ports::ai_provider::{
+    AiProvider, AiProviderError, AskResponse, MessageRequest,
 };
 
 use crate::load_file::load;
@@ -32,11 +32,11 @@ impl ChatGPT {
     async fn handle_message_request(
         &self,
         messages: Vec<MessageRequest>,
-    ) -> Result<Vec<Output>, AgentError> {
+    ) -> Result<Vec<Output>, AiProviderError> {
         let response = self
             .send_message(messages)
             .await
-            .map_err(|error| AgentError::Other(error.to_string()))?;
+            .map_err(|error| AiProviderError::Other(error.to_string()))?;
 
         let status = response.status().as_u16();
         if let Some(error) = status_to_error(status) {
@@ -47,7 +47,7 @@ impl ChatGPT {
             .json::<HashMap<String, serde_json::Value>>()
             .await
             .map_err(|error| {
-                AgentError::FailedToParseResponse(error.to_string())
+                AiProviderError::FailedToParseResponse(error.to_string())
             })?;
 
         let output = data.get("output");
@@ -57,7 +57,7 @@ impl ChatGPT {
             }
             None => {
                 eprintln!("Response: {data:#?}");
-                Err(AgentError::FailedToParseResponse(
+                Err(AiProviderError::FailedToParseResponse(
                     "Invalid response".to_string(),
                 ))
             }
@@ -102,11 +102,11 @@ impl ChatGPT {
 }
 
 #[async_trait::async_trait]
-impl Agent for ChatGPT {
+impl AiProvider for ChatGPT {
     async fn ask(
         &self,
         messages: Vec<MessageRequest>,
-    ) -> Result<AskResponse, AgentError> {
+    ) -> Result<AskResponse, AiProviderError> {
         let output = self.handle_message_request(messages).await?;
 
         Ok(match &output[0] {
@@ -135,10 +135,10 @@ impl Agent for ChatGPT {
     }
 }
 
-fn status_to_error(status: u16) -> Option<AgentError> {
+fn status_to_error(status: u16) -> Option<AiProviderError> {
     match status {
-        429 => Some(AgentError::Limited),
-        503 => Some(AgentError::ServicesOverloaded),
+        429 => Some(AiProviderError::Limited),
+        503 => Some(AiProviderError::ServicesOverloaded),
         _ => None,
     }
 }
