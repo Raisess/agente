@@ -9,11 +9,15 @@ pub struct SessionRepository {
 }
 
 impl SessionRepository {
-    pub fn new(db: Box<dyn Database<sqlx::Pool<sqlx::Sqlite>>>) -> Self {
-        Self { db }
+    pub async fn new(
+        db: Box<dyn Database<sqlx::Pool<sqlx::Sqlite>>>,
+    ) -> Result<Self, Error> {
+        let instance = Self { db };
+        instance.setup().await?;
+        Ok(instance)
     }
 
-    pub async fn setup(&self) -> Result<(), Error> {
+    async fn setup(&self) -> Result<(), Error> {
         let sql = "CREATE TABLE IF NOT EXISTS sessions(id UUID PRIMARY KEY \
                    NOT NULL, started_at TIMESTAMPTZ NOT NULL, updated_at \
                    TIMESTAMPTZ NOT NULL, username VARCHAR(100) NOT NULL, \

@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 agente-domain = { path = "../domain" }
+agente-infrastructure = { path = "../infrastructure" }
 sqlx = { workspace = true }
 async-trait = { workspace = true }
 uuid = { workspace = true }

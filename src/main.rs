@@ -5,6 +5,7 @@ use tracing_subscriber;
 use tracing_subscriber::EnvFilter;
 
 use agente::processor::{Processor, TaskResponse};
+use agente_application::core::init_session::init_session;
 use agente_application::repositories::session::SessionRepository;
 use agente_domain::models::session::Session;
 use agente_infrastructure::adapters::database::sqlite::SqliteDatabase;
@@ -45,37 +46,21 @@ async fn main() {
             .await
             .expect("Failed to initialize sqlite database"),
     );
-    let session_repository = Arc::new(SessionRepository::new(sqlite));
-    session_repository
-        .setup()
-        .await
-        .expect("Failed to setup session repository");
+    let session_repository = Arc::new(
+        SessionRepository::new(sqlite)
+            .await
+            .expect("Failed to setup session repository"),
+    );
 
     let args = Args::parse();
-    let session = match args.session {
-        Some(session_id) => session_repository
-            .find_by_id(session_id)
-            .await
-            .expect("Failed to find session on database"),
-        None => {
-            let session = Session::new(Config::pwd());
-            session_repository
-                .create(&session)
-                .await
-                .expect("Failed to store session into database");
-
-            Some(session)
-        }
-    };
-
-    if session.is_none() {
-        panic!("Invalid session id!");
-    }
+    let session = init_session(session_repository, args.session)
+        .await
+        .expect("Failed to init session");
 
     let agent = ChatGPT::new(config.chat_gpt.clone());
     let mut processor = Processor::init(Box::new(agent));
 
-    start_stdio(&session.unwrap(), &mut processor).await;
+    start_stdio(&session, &mut processor).await;
 }
 
 /// Starts the stdio interface

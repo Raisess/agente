@@ -23,6 +23,7 @@ name = "agente-application"
 version = "0.1.0"
 dependencies = [
  "agente-domain",
+ "agente-infrastructure",
  "async-trait",
  "sqlx",
  "uuid",
