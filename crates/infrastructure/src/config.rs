@@ -51,6 +51,10 @@ impl Config {
         std::env::var("PORT").unwrap_or("3030".to_string())
     }
 
+    pub fn db_file() -> String {
+        format!("{}/sqlite.db", config_folder_path())
+    }
+
     fn create_dir(path: &str) -> Result<(), std::io::Error> {
         match std::fs::create_dir(path) {
             Ok(_) => {}

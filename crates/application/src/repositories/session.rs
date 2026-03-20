@@ -4,6 +4,16 @@ use agente_domain::error::Error;
 use agente_domain::models::session::Session;
 use agente_domain::ports::database::Database;
 
+const TABLE: &str = r#"
+CREATE TABLE IF NOT EXISTS sessions(
+    id UUID PRIMARY KEY NOT NULL,
+    started_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
+    username VARCHAR(100) NOT NULL,
+    hostname VARCHAR(100) NOT NULL,
+    directory VARCHAR(500) NOT NULL
+);"#;
+
 pub struct SessionRepository {
     db: Box<dyn Database<sqlx::Pool<sqlx::Sqlite>>>,
 }
@@ -12,20 +22,8 @@ impl SessionRepository {
     pub async fn new(
         db: Box<dyn Database<sqlx::Pool<sqlx::Sqlite>>>,
     ) -> Result<Self, Error> {
-        let instance = Self { db };
-        instance.setup().await?;
-        Ok(instance)
-    }
-
-    async fn setup(&self) -> Result<(), Error> {
-        let sql = "CREATE TABLE IF NOT EXISTS sessions(id UUID PRIMARY KEY \
-                   NOT NULL, started_at TIMESTAMPTZ NOT NULL, updated_at \
-                   TIMESTAMPTZ NOT NULL, username VARCHAR(100) NOT NULL, \
-                   hostname VARCHAR(100) NOT NULL, directory VARCHAR(500) NOT \
-                   NULL);";
-
-        sqlx::query(&sql).execute(&*self.db.expose()).await?;
-        Ok(())
+        sqlx::query(TABLE).execute(&*db.expose()).await?;
+        Ok(Self { db })
     }
 
     pub async fn create(&self, session: &Session) -> Result<(), Error> {

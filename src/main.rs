@@ -80,6 +80,7 @@ async fn start_stdio(session: &Session, processor: &mut Processor) -> () {
 │ \x1b[32m |   |\x1b[0m   Running at: http://localhost:{:<27}│
 │ \x1b[32m/ \\ / \\\x1b[0m  Working dir: {:<43}│
 └──────────────────────────────────────────────────────────────────┘
+* Resuming sessions can have a lot of context, use a MEMORY.md to not waste tokens!
 ",
     session.id,
     Config::port(),
@@ -123,7 +124,7 @@ async fn setup() -> (Arc<Config>, Arc<SessionRepository>) {
     }
 
     let sqlite = Box::new(
-        SqliteDatabase::new("main.db")
+        SqliteDatabase::new(&Config::db_file())
             .await
             .expect("Failed to initialize sqlite database"),
     );
