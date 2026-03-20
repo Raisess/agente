@@ -8,7 +8,6 @@ use thiserror::Error;
 pub trait AiProvider: Send + Sync {
     /// Ask the agent with important info like file contents, summaries, etc
     /// and update the previous message context.
-    /// @NOTE: Use send the base prompt to feed the agent instructions set.
     async fn ask(
         &self,
         messages: Vec<MessageRequest>,
@@ -60,5 +59,16 @@ impl std::fmt::Display for MessageRole {
             MessageRole::System => "system",
             MessageRole::User => "user",
         })
+    }
+}
+
+impl From<String> for MessageRole {
+    fn from(value: String) -> Self {
+        match value.as_str() {
+            "assistant" => MessageRole::Assistant,
+            "system" => MessageRole::System,
+            "user" => MessageRole::User,
+            _ => panic!("Invalid role type"),
+        }
     }
 }
