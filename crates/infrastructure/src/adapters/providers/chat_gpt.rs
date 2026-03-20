@@ -6,7 +6,7 @@ use agente_domain::ports::ai_provider::{
     AiProvider, AiProviderError, AskResponse, MessageRequest,
 };
 
-use crate::load_file::load;
+use crate::adapters::util::load_file::load;
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct ChatGPTConfig {

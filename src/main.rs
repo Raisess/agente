@@ -9,8 +9,8 @@ use agente_application::core::init_session::init_session;
 use agente_application::repositories::session::SessionRepository;
 use agente_domain::models::session::Session;
 use agente_infrastructure::adapters::database::sqlite::SqliteDatabase;
-use agente_infrastructure::adapters::file_system::FileSystem;
 use agente_infrastructure::adapters::providers::chat_gpt::ChatGPT;
+use agente_infrastructure::adapters::util::file_system::FileSystem;
 use agente_infrastructure::config::Config;
 
 #[derive(Parser, Debug)]

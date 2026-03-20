@@ -3,8 +3,8 @@ use tracing::info;
 use agente_domain::ports::ai_provider::{
     AiProvider, AiProviderError, AskResponse, MessageRequest, MessageRole,
 };
+use agente_infrastructure::adapters::util::load_file::load;
 use agente_infrastructure::config::Config;
-use agente_infrastructure::load_file::load;
 
 const MAX_MESSAGE_HISTORY_SIZE: usize = 50;
 
