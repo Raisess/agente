@@ -48,7 +48,7 @@ impl Processor {
     }
 
     pub async fn handle(&mut self, prompt: String) -> Result<(), Error> {
-        match self.recursively_process_task(prompt).await {
+        match self.recursively_process_task(prompt, None).await {
             Ok(_) => {}
             Err(error) => {
                 self.__sender.send(TaskResponse::Error(error)).await?;
@@ -62,6 +62,7 @@ impl Processor {
     async fn recursively_process_task(
         &mut self,
         task: String,
+        last_executed_tool_hash: Option<String>,
     ) -> Result<(), Error> {
         if task.is_empty() {
             return Ok(());
@@ -77,12 +78,22 @@ impl Processor {
             }
             AskResponse::ToolCall(tools) => {
                 for (tool, arguments) in tools {
+                    let hash = Self::generate_tool_hash(&tool, &arguments);
+                    if last_executed_tool_hash.is_some()
+                        && last_executed_tool_hash.eq(&Some(hash.clone()))
+                    {
+                        let error = Error::new(&format!(
+                            "Trying to execute the same tool again: {hash}"
+                        ));
+                        return Err(error);
+                    }
+
                     self.__sender
                         .send(TaskResponse::CommandSignature(tool.to_string()))
                         .await?;
 
                     let (output, croped_output) =
-                        self.execute_tool(tool.clone(), arguments.into())?;
+                        self.execute_tool(&tool, &arguments)?;
                     self.__sender
                         .send(TaskResponse::CommandResponse((
                             tool,
@@ -92,7 +103,7 @@ impl Processor {
 
                     // @TODO: should crop the output size when too big and how
                     // much big?
-                    self.recursively_process_task(output).await?;
+                    self.recursively_process_task(output, Some(hash)).await?;
                 }
             }
         }
@@ -112,8 +123,8 @@ impl Processor {
 
     fn execute_tool(
         &self,
-        tool: String,
-        arguments: HashMap<String, String>,
+        tool: &String,
+        arguments: &HashMap<String, String>,
     ) -> Result<(String, String), Error> {
         let mut script =
             vec![ExecutorArgument::Arg(format!("./__tools/{tool}.py"))];
@@ -125,10 +136,25 @@ impl Processor {
             .collect::<Vec<_>>();
 
         script.append(&mut flags);
+
         let output = self.cmd.exec("python3", script)?;
         let mut croped_output = output.clone();
         croped_output.truncate(MAX_COMMAND_OUTPUT_SIZE);
 
         Ok((output, croped_output))
+    }
+
+    fn generate_tool_hash(
+        tool: &String,
+        arguments: &HashMap<String, String>,
+    ) -> String {
+        format!(
+            "{tool} {}",
+            arguments
+                .iter()
+                .map(|(key, value)| format!("{key}: {value}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
     }
 }
