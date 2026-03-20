@@ -48,7 +48,7 @@ impl Processor {
     }
 
     pub async fn handle(&mut self, prompt: String) -> Result<(), Error> {
-        match self.recursively_process_task(prompt, None).await {
+        match self.recursively_process_prompt(prompt, None).await {
             Ok(_) => {}
             Err(error) => {
                 self.__sender.send(TaskResponse::Error(error)).await?;
@@ -59,17 +59,17 @@ impl Processor {
     }
 
     #[async_recursion::async_recursion]
-    async fn recursively_process_task(
+    async fn recursively_process_prompt(
         &mut self,
-        task: String,
+        prompt: String,
         last_executed_tool_hash: Option<String>,
     ) -> Result<(), Error> {
-        if task.is_empty() {
+        if prompt.is_empty() {
             return Ok(());
         }
 
         self.__sender.send(TaskResponse::Thinking).await?;
-        let response = self.process_prompt(task).await?;
+        let response = self.process_prompt(prompt).await?;
         match response {
             AskResponse::Content(text) => {
                 self.__sender
@@ -103,7 +103,7 @@ impl Processor {
 
                     // @TODO: should crop the output size when too big and how
                     // much big?
-                    self.recursively_process_task(output, Some(hash)).await?;
+                    self.recursively_process_prompt(output, Some(hash)).await?;
                 }
             }
         }

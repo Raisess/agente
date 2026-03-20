@@ -27,31 +27,7 @@ async fn main() {
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 
-    let fs = Arc::new(FileSystem::default());
-    let config = match Config::load(fs.clone(), None) {
-        Ok(c) => c,
-        Err(_) => Config::setup_fallback(fs).expect(
-            "Failed to load config.json on the current path and from \
-             ~/.config/agente/config.json",
-        ),
-    };
-
-    // @TODO: support select provider
-    if config.chat_gpt.api_key.is_empty() {
-        panic!("No API Key provided");
-    }
-
-    let sqlite = Box::new(
-        SqliteDatabase::new("main.db")
-            .await
-            .expect("Failed to initialize sqlite database"),
-    );
-    let session_repository = Arc::new(
-        SessionRepository::new(sqlite)
-            .await
-            .expect("Failed to setup session repository"),
-    );
-
+    let (config, session_repository) = setup().await;
     let args = Args::parse();
     let session = init_session(session_repository, args.session)
         .await
@@ -127,3 +103,35 @@ async fn start_stdio(session: &Session, processor: &mut Processor) -> () {
 }
 
 // @TODO: start websocket server interface
+async fn start_websocket() {
+    todo!()
+}
+
+async fn setup() -> (Arc<Config>, Arc<SessionRepository>) {
+    let fs = Arc::new(FileSystem::default());
+    let config = match Config::load(fs.clone(), None) {
+        Ok(c) => c,
+        Err(_) => Config::setup_fallback(fs).expect(
+            "Failed to load config.json on the current path and from \
+             ~/.config/agente/config.json",
+        ),
+    };
+
+    // @TODO: support select provider
+    if config.chat_gpt.api_key.is_empty() {
+        panic!("No API Key provided");
+    }
+
+    let sqlite = Box::new(
+        SqliteDatabase::new("main.db")
+            .await
+            .expect("Failed to initialize sqlite database"),
+    );
+    let session_repository = Arc::new(
+        SessionRepository::new(sqlite)
+            .await
+            .expect("Failed to setup session repository"),
+    );
+
+    (config, session_repository)
+}
