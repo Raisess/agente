@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+use agente::context::Context;
+use agente_application::core::get_conversation::get_conversation;
+use agente_application::repositories::conversation::ConversationRepository;
 use clap::Parser;
 use tracing_subscriber;
 use tracing_subscriber::EnvFilter;
@@ -27,14 +30,25 @@ async fn main() {
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 
-    let (config, session_repository) = setup().await;
+    let (config, session_repository, conversation_repository) = setup().await;
     let args = Args::parse();
     let session = init_session(session_repository, args.session)
         .await
         .expect("Failed to init session");
+    let conversation = get_conversation(
+        conversation_repository.clone(),
+        session.id.to_string(),
+    )
+    .await
+    .expect("Failed to load conversation");
 
     let agent = ChatGPT::new(config.chat_gpt.clone());
-    let mut processor = Processor::init(Box::new(agent));
+    let context = Context::init(
+        conversation_repository,
+        session.id.to_string(),
+        conversation,
+    );
+    let mut processor = Processor::init(Box::new(agent), context);
 
     start_stdio(&session, &mut processor).await;
 }
@@ -108,7 +122,11 @@ async fn start_websocket() {
     todo!()
 }
 
-async fn setup() -> (Arc<Config>, Arc<SessionRepository>) {
+async fn setup() -> (
+    Arc<Config>,
+    Arc<SessionRepository>,
+    Arc<ConversationRepository>,
+) {
     let fs = Arc::new(FileSystem::default());
     let config = match Config::load(fs.clone(), None) {
         Ok(c) => c,
@@ -123,16 +141,21 @@ async fn setup() -> (Arc<Config>, Arc<SessionRepository>) {
         panic!("No API Key provided");
     }
 
-    let sqlite = Box::new(
+    let sqlite = Arc::new(
         SqliteDatabase::new(&Config::db_file())
             .await
             .expect("Failed to initialize sqlite database"),
     );
     let session_repository = Arc::new(
-        SessionRepository::new(sqlite)
+        SessionRepository::new(sqlite.clone())
             .await
             .expect("Failed to setup session repository"),
     );
+    let conversation_repository = Arc::new(
+        ConversationRepository::new(sqlite)
+            .await
+            .expect("Failed to setup conversation repository"),
+    );
 
-    (config, session_repository)
+    (config, session_repository, conversation_repository)
 }

@@ -32,13 +32,13 @@ pub struct Processor {
 }
 
 impl Processor {
-    pub fn init(agent: Box<dyn AiProvider>) -> Self {
+    pub fn init(agent: Box<dyn AiProvider>, context: Context) -> Self {
         let (tx, rx) = tokio::sync::mpsc::channel::<TaskResponse>(10);
         Self {
             __receiver: Arc::new(Mutex::new(rx)),
             __sender: tx,
             agent,
-            context: Context::init(),
+            context,
             cmd: CMD::default(),
         }
     }

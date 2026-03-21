@@ -1,5 +1,10 @@
+use std::sync::Arc;
+
 use tracing::info;
 
+use agente_application::core::append_to_conversation::append_to_conversation;
+use agente_application::repositories::conversation::ConversationRepository;
+use agente_domain::models::message::Message;
 use agente_domain::ports::ai_provider::{
     AiProvider, AiProviderError, AskResponse, MessageRequest, MessageRole,
 };
@@ -9,16 +14,35 @@ use agente_infrastructure::config::Config;
 const MAX_MESSAGE_HISTORY_SIZE: usize = 50;
 
 pub struct Context {
+    conversation_repository: Arc<ConversationRepository>,
+    session_id: String,
     messages: Vec<MessageRequest>,
 }
 
 impl Context {
-    pub fn init() -> Self {
+    pub fn init(
+        conversation_repository: Arc<ConversationRepository>,
+        session_id: String,
+        messages: Vec<Message>,
+    ) -> Self {
+        // @TODO: should get messages from conversation as summarized
+        let mut message_requests = vec![MessageRequest {
+            role: MessageRole::System,
+            content: system_prompt(),
+        }];
+
+        for message in messages {
+            message_requests.push(MessageRequest {
+                role: message.role.into(),
+                content: message.content,
+            })
+        }
+
+        info!(name: "messages", "{:#?}", message_requests);
         Self {
-            messages: vec![MessageRequest {
-                role: MessageRole::System,
-                content: system_prompt(),
-            }],
+            conversation_repository,
+            session_id,
+            messages: message_requests,
         }
     }
 
@@ -28,6 +52,15 @@ impl Context {
         prompt: String,
     ) -> Result<AskResponse, AiProviderError> {
         info!("asking...");
+        append_to_conversation(
+            self.conversation_repository.clone(),
+            self.session_id.clone(),
+            MessageRole::User,
+            prompt.clone(),
+        )
+        .await
+        .expect("Failed to append message to conversation");
+
         self.messages.push(MessageRequest {
             role: MessageRole::User,
             content: prompt,
@@ -57,6 +90,8 @@ impl Context {
         Ok(ask_response)
     }
 
+    // @TODO: should save summarized conversations into the db and fetch it
+    // instead of listing every message
     pub async fn summarize(
         &mut self,
         agent: &Box<dyn AiProvider>,

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use agente_domain::error::Error;
 use agente_domain::models::message::Message;
 use agente_domain::ports::database::Database;
@@ -13,16 +15,17 @@ CREATE TABLE IF NOT EXISTS conversations(
 
     CONSTRAINT fk_session
         FOREIGN KEY (session_id)
-        REFERENCES sessions(session_id)
+        REFERENCES sessions(id)
+        ON DELETE CASCADE
 );"#;
 
 pub struct ConversationRepository {
-    db: Box<dyn Database<sqlx::Pool<sqlx::Sqlite>>>,
+    db: Arc<dyn Database<sqlx::Pool<sqlx::Sqlite>>>,
 }
 
 impl ConversationRepository {
     pub async fn new(
-        db: Box<dyn Database<sqlx::Pool<sqlx::Sqlite>>>,
+        db: Arc<dyn Database<sqlx::Pool<sqlx::Sqlite>>>,
     ) -> Result<Self, Error> {
         sqlx::query(TABLE).execute(&*db.expose()).await?;
         Ok(Self { db })

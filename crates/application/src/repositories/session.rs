@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use agente_domain::error::Error;
 use agente_domain::models::session::Session;
 use agente_domain::ports::database::Database;
@@ -13,12 +15,12 @@ CREATE TABLE IF NOT EXISTS sessions(
 );"#;
 
 pub struct SessionRepository {
-    db: Box<dyn Database<sqlx::Pool<sqlx::Sqlite>>>,
+    db: Arc<dyn Database<sqlx::Pool<sqlx::Sqlite>>>,
 }
 
 impl SessionRepository {
     pub async fn new(
-        db: Box<dyn Database<sqlx::Pool<sqlx::Sqlite>>>,
+        db: Arc<dyn Database<sqlx::Pool<sqlx::Sqlite>>>,
     ) -> Result<Self, Error> {
         sqlx::query(TABLE).execute(&*db.expose()).await?;
         Ok(Self { db })
