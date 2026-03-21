@@ -1,9 +1,15 @@
 #! /usr/bin/env python3
 
 import argparse
+import os
 from pathlib import Path
 
+WORKING_DIR = os.getenv("WORKING_DIR", None)
+
 def read_file(path: str) -> str:
+  if not path.startswith(".") and not WORKING_DIR in path:
+    raise Exception(f"Invalid path, outside working dir: {WORKING_DIR}")
+
   file_path = Path(path)
   file_path.parent.mkdir(parents=True, exist_ok=True)
 

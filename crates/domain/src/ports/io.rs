@@ -22,5 +22,6 @@ pub trait Executor: Send + Sync {
         &self,
         cmd: &str,
         args: Vec<ExecutorArgument>,
+        envs: Vec<(String, String)>,
     ) -> Result<String, std::io::Error>;
 }

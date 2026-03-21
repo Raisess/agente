@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use agente_infrastructure::config::Config;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
 
@@ -137,7 +138,11 @@ impl Processor {
 
         script.append(&mut flags);
 
-        let output = self.cmd.exec("python3", script)?;
+        let output = self.cmd.exec(
+            "python3",
+            script,
+            vec![("WORKING_DIR".to_string(), Config::pwd())],
+        )?;
         let mut croped_output = output.clone();
         croped_output.truncate(MAX_COMMAND_OUTPUT_SIZE);
 

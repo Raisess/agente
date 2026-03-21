@@ -2,11 +2,17 @@
 
 import subprocess
 import argparse
+import os
 
 FOLDERS_TO_IGNORE = [".git", "node_modules", "target", "build", "dist", ".next", ".cache", "__pycache__", "venv"]
 
-def find_command(directory: str, ignore_list: list[str]) -> str:
-  cmd = ["find", directory]
+WORKING_DIR = os.getenv("WORKING_DIR", None)
+
+def find_command(path: str, ignore_list: list[str]) -> str:
+  if not path.startswith(".") and not WORKING_DIR in path:
+    raise Exception(f"Invalid path, outside working dir: {WORKING_DIR}")
+
+  cmd = ["find", path]
 
   for ignore in ignore_list:
     cmd += ["!", "-path", f"*/{ignore}*"]

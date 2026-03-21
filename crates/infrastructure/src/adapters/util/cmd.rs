@@ -10,8 +10,10 @@ impl Executor for CMD {
         &self,
         cmd: &str,
         args: Vec<ExecutorArgument>,
+        envs: Vec<(String, String)>,
     ) -> Result<String, std::io::Error> {
         let mut command = Command::new(cmd);
+        command.envs(envs);
         for arg in args {
             match arg {
                 ExecutorArgument::Arg(argument) => command.arg(argument),
