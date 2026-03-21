@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use std::sync::Arc;
 
 use agente_domain::error::Error;
@@ -11,7 +12,11 @@ pub async fn init_session(
     id: Option<String>,
 ) -> Result<Session, Error> {
     let session = match id {
-        Some(session_id) => session_repository.find_by_id(session_id).await?,
+        Some(session_id) => {
+            session_repository
+                .find_by_id(uuid::Uuid::from_str(&session_id)?)
+                .await?
+        }
         None => {
             let session = Session::new(Config::pwd());
             session_repository.create(&session).await?;
