@@ -9,7 +9,6 @@ dependencies = [
  "agente-application",
  "agente-domain",
  "agente-infrastructure",
- "async-recursion",
  "async-trait",
  "clap",
  "regex",
@@ -24,8 +23,11 @@ version = "0.1.0"
 dependencies = [
  "agente-domain",
  "agente-infrastructure",
+ "async-recursion",
  "async-trait",
  "sqlx",
+ "tokio",
+ "tracing",
  "uuid",
 ]
 

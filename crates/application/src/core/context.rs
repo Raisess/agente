@@ -2,14 +2,15 @@ use std::sync::Arc;
 
 use tracing::info;
 
-use agente_application::core::append_to_conversation::append_to_conversation;
-use agente_application::repositories::conversation::ConversationRepository;
 use agente_domain::models::message::Message;
 use agente_domain::ports::ai_provider::{
     AiProvider, AiProviderError, AskResponse, MessageRequest, MessageRole,
 };
 use agente_infrastructure::adapters::util::load_file::load;
 use agente_infrastructure::config::Config;
+
+use crate::core::append_to_conversation;
+use crate::repositories::conversation::ConversationRepository;
 
 const MAX_MESSAGE_HISTORY_SIZE: usize = 50;
 

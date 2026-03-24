@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use agente_infrastructure::config::Config;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
 
@@ -9,8 +8,9 @@ use agente_domain::error::Error;
 use agente_domain::ports::ai_provider::{AiProvider, AskResponse};
 use agente_domain::ports::io::{Executor, ExecutorArgument};
 use agente_infrastructure::adapters::util::cmd::CMD;
+use agente_infrastructure::config::Config;
 
-use crate::context::Context;
+use crate::core::context::Context;
 
 const MAX_COMMAND_OUTPUT_SIZE: usize = 2500;
 
