@@ -128,7 +128,7 @@ impl Processor {
         arguments: &HashMap<String, String>,
     ) -> Result<(String, String), Error> {
         let mut script =
-            vec![ExecutorArgument::Arg(format!("./__tools/{tool}.py"))];
+            vec![ExecutorArgument::Arg(format!("./tools/{tool}.py"))];
         let mut flags = arguments
             .iter()
             .map(|(key, value)| {
