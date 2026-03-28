@@ -78,9 +78,15 @@ impl ChatGPT {
             })
             .collect::<Vec<_>>();
 
+        // @TODO: should load custom tools file and concate with default ones
         let tools = serde_json::from_str::<serde_json::Value>(
-            &load("./tools.json", vec![])
+            &load("./tools.json", vec![]).unwrap_or(
+                load(
+                    &format!("{}/.agente/tools.json", std::env!("HOME")),
+                    vec![],
+                )
                 .expect("Failed to load tools.json file"),
+            ),
         )
         .expect("Failed to parse tools json");
 

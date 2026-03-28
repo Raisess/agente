@@ -8,7 +8,7 @@ use agente_domain::error::Error;
 use agente_domain::ports::ai_provider::{AiProvider, AskResponse};
 use agente_domain::ports::io::{Executor, ExecutorArgument};
 use agente_infrastructure::adapters::util::cmd::CMD;
-use agente_infrastructure::config::Config;
+use agente_infrastructure::config::{Config, DEFAULT_TOOLS};
 
 use crate::core::context::Context;
 
@@ -127,8 +127,14 @@ impl Processor {
         tool: &String,
         arguments: &HashMap<String, String>,
     ) -> Result<(String, String), Error> {
-        let script_path = format!("{}/{tool}.py", Config::default_tools_path());
-        let mut script = vec![ExecutorArgument::Arg(script_path)];
+        let tools_path = if DEFAULT_TOOLS.contains(&tool.as_str()) {
+            Config::default_tools_path()
+        } else {
+            panic!("Custom tools path not defined!")
+        };
+
+        let mut script =
+            vec![ExecutorArgument::Arg(format!("{tools_path}/{tool}.py"))];
         let mut flags = arguments
             .iter()
             .map(|(key, value)| {
