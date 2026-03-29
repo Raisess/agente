@@ -32,6 +32,8 @@ pub enum AiProviderError {
     ServicesOverloaded,
 }
 
+/// Represents the response for the ask method, it can be plain text (Content)
+/// or tool call invocation (ToolCall)
 #[derive(Debug)]
 pub enum AskResponse {
     Content(String),
@@ -39,12 +41,14 @@ pub enum AskResponse {
     ToolCall(Vec<(String, HashMap<String, String>)>),
 }
 
+/// Used to mount the message request vector
 #[derive(Debug, Clone)]
 pub struct MessageRequest {
     pub role: MessageRole,
     pub content: String,
 }
 
+/// Message roles enumeration
 #[derive(Debug, Clone)]
 pub enum MessageRole {
     Assistant,

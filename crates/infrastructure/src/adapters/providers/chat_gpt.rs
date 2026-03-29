@@ -6,7 +6,7 @@ use agente_domain::ports::ai_provider::{
     AiProvider, AiProviderError, AskResponse, MessageRequest,
 };
 
-use crate::adapters::util::load_file::load;
+use crate::adapters::providers::load_and_merge_tools;
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct ChatGPTConfig {
@@ -78,22 +78,10 @@ impl ChatGPT {
             })
             .collect::<Vec<_>>();
 
-        // @TODO: should load custom tools file and concate with default ones
-        let tools = serde_json::from_str::<serde_json::Value>(
-            &load("./tools.json", vec![]).unwrap_or(
-                load(
-                    &format!("{}/.agente/tools.json", std::env!("HOME")),
-                    vec![],
-                )
-                .expect("Failed to load tools.json file"),
-            ),
-        )
-        .expect("Failed to parse tools json");
-
         let json = serde_json::json!({
             "input": input,
             "model": self.config.model, // gpt-3.5-turbo
-            "tools": tools,
+            "tools": load_and_merge_tools(),
             "tool_choice": "auto",
         });
 
