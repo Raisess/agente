@@ -134,13 +134,13 @@ fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
         .join(", ");
 
     load(
-        "__prompts/summarizer.md",
+        "prompts/summarizer.md",
         vec![("messages", messages_prompt)],
     )
     .expect("Failed to load summarizer prompt")
 }
 
 fn system_prompt() -> String {
-    load("__prompts/system.md", vec![("current_dir", Config::pwd())])
+    load("prompts/system.md", vec![("current_dir", Config::pwd())])
         .expect("Failed to load system prompt")
 }
