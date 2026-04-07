@@ -1,16 +1,11 @@
 #! /usr/bin/env python3
 
 import argparse
-import os
-from pathlib import Path
 
-WORKING_DIR = os.getenv("WORKING_DIR", None)
+from __common import to_path
 
 def read_file(path: str) -> str:
-  if not path.startswith(".") and not WORKING_DIR in path:
-    raise Exception(f"Invalid path, outside working dir: {WORKING_DIR}")
-
-  file_path = Path(path)
+  file_path = to_path(path)
   file_path.parent.mkdir(parents=True, exist_ok=True)
 
   # Convert \n, \t, etc. into real characters
