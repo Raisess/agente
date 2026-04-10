@@ -7,8 +7,6 @@ use agente_domain::ports::io::{Reader, Writer};
 
 use crate::adapters::providers::chat_gpt::ChatGPTConfig;
 
-pub const DEFAULT_TOOLS: [&str; 3] = ["read", "write", "explore"];
-
 /// Represents the agent settings
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct Config {

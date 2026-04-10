@@ -6,7 +6,7 @@ use agente_domain::ports::ai_provider::{
     AiProvider, AiProviderError, AskResponse, MessageRequest,
 };
 
-use crate::adapters::providers::load_and_merge_tools;
+use crate::adapters::providers::load_tools;
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct ChatGPTConfig {
@@ -81,7 +81,7 @@ impl ChatGPT {
         let json = serde_json::json!({
             "input": input,
             "model": self.config.model, // gpt-3.5-turbo
-            "tools": load_and_merge_tools(),
+            "tools": load_tools(),
             "tool_choice": "auto",
         });
 
