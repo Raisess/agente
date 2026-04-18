@@ -1,3 +1,5 @@
+use crate::error::Error;
+
 /// Reprensents a read operation, can be from io, network, etc.
 pub trait Reader: Send + Sync {
     /// Reads from a specific path, url, etc.
@@ -23,5 +25,5 @@ pub trait Executor: Send + Sync {
         cmd: &str,
         args: Vec<ExecutorArgument>,
         envs: Vec<(String, String)>,
-    ) -> Result<String, std::io::Error>;
+    ) -> Result<String, Error>;
 }

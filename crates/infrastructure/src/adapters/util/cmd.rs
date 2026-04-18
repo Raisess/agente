@@ -1,5 +1,6 @@
 use std::process::Command;
 
+use agente_domain::error::Error;
 use agente_domain::ports::io::{Executor, ExecutorArgument};
 
 #[derive(Default)]
@@ -11,7 +12,7 @@ impl Executor for CMD {
         cmd: &str,
         args: Vec<ExecutorArgument>,
         envs: Vec<(String, String)>,
-    ) -> Result<String, std::io::Error> {
+    ) -> Result<String, Error> {
         let mut command = Command::new(cmd);
         command.envs(envs);
         for arg in args {
@@ -25,7 +26,8 @@ impl Executor for CMD {
 
         let output = command.output()?;
         if output.status.code().is_some_and(|status| status != 0) {
-            return Ok(String::from_utf8_lossy(&output.stderr).into());
+            let error_msg = String::from_utf8_lossy(&output.stderr);
+            return Err(Error::new(&error_msg));
         }
 
         return Ok(String::from_utf8_lossy(&output.stdout).into());

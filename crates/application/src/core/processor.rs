@@ -49,6 +49,7 @@ impl Processor {
     }
 
     pub async fn handle(&mut self, prompt: String) -> Result<(), Error> {
+        // @TODO: plan prompt to improve execution harness
         match self.recursively_process_prompt(prompt, None).await {
             Ok(_) => {}
             Err(error) => {
@@ -70,7 +71,7 @@ impl Processor {
         }
 
         self.__sender.send(TaskResponse::Thinking).await?;
-        let response = self.process_prompt(prompt).await?;
+        let response = self.process_prompt(prompt.clone()).await?;
         match response {
             AskResponse::Content(text) => {
                 self.__sender
@@ -93,18 +94,36 @@ impl Processor {
                         .send(TaskResponse::CommandSignature(tool.to_string()))
                         .await?;
 
-                    let (output, croped_output) =
-                        self.execute_tool(&tool, &arguments)?;
-                    self.__sender
-                        .send(TaskResponse::CommandResponse((
-                            tool,
-                            croped_output,
-                        )))
-                        .await?;
+                    let response = self.execute_tool(&tool, &arguments);
+                    match response {
+                        Ok((output, croped_output)) => {
+                            self.__sender
+                                .send(TaskResponse::CommandResponse((
+                                    tool,
+                                    croped_output,
+                                )))
+                                .await?;
 
-                    // @TODO: should crop the output size when too big and how
-                    // much big?
-                    self.recursively_process_prompt(output, Some(hash)).await?;
+                            // @TODO: should crop the output size when too big
+                            // and how much big?
+                            self.recursively_process_prompt(output, Some(hash))
+                                .await?;
+                        }
+                        Err(e) => {
+                            self.__sender.send(TaskResponse::Error(e)).await?;
+
+                            let failed_prompt = format!(
+                                "Failed to process prompt: {prompt}, use \
+                                 another tool to find context and then retry \
+                                 it"
+                            );
+                            self.recursively_process_prompt(
+                                failed_prompt,
+                                Some(hash),
+                            )
+                            .await?;
+                        }
+                    };
                 }
             }
         }
