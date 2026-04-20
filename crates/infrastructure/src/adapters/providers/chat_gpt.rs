@@ -46,9 +46,7 @@ impl ChatGPT {
         let data = response
             .json::<HashMap<String, serde_json::Value>>()
             .await
-            .map_err(|error| {
-                AiProviderError::FailedToParseResponse(error.to_string())
-            })?;
+            .map_err(|error| AiProviderError::FailedToParseResponse(error.to_string()))?;
 
         let output = data.get("output");
         match output {
@@ -115,10 +113,7 @@ impl AiProvider for ChatGPT {
                             name, arguments, ..
                         } = tool
                         {
-                            Some((
-                                name.clone(),
-                                serde_json::from_str(arguments).unwrap(),
-                            ))
+                            Some((name.clone(), serde_json::from_str(arguments).unwrap()))
                         } else {
                             None
                         }

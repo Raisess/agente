@@ -57,16 +57,13 @@ impl Config {
 
     pub fn default_tools_path() -> String {
         let local_path = "./tools".to_string();
-        if std::fs::exists(&local_path)
-            .expect("Can't confirm if local tools path exists")
+        if std::fs::exists(&local_path).expect("Can't confirm if local tools path exists")
         {
             return local_path;
         }
 
         let path = format!("{}/tools", installed_folder_path());
-        if std::fs::exists(&path)
-            .expect("Can't confirm if local tools path exists")
-        {
+        if std::fs::exists(&path).expect("Can't confirm if local tools path exists") {
             return path;
         }
 

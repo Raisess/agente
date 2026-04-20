@@ -27,8 +27,8 @@ impl SessionRepository {
     }
 
     pub async fn create(&self, session: &Session) -> Result<(), Error> {
-        let sql = "INSERT INTO sessions(id, started_at, updated_at, username, \
-                   hostname, directory) VALUES(?, ?, ?, ?, ?, ?);";
+        let sql = "INSERT INTO sessions(id, started_at, updated_at, username, hostname, \
+                   directory) VALUES(?, ?, ?, ?, ?, ?);";
 
         sqlx::query(&sql)
             .bind(session.id)
@@ -42,10 +42,7 @@ impl SessionRepository {
         Ok(())
     }
 
-    pub async fn find_by_id(
-        &self,
-        id: uuid::Uuid,
-    ) -> Result<Option<Session>, Error> {
+    pub async fn find_by_id(&self, id: uuid::Uuid) -> Result<Option<Session>, Error> {
         let sql = "SELECT * FROM sessions WHERE id = ? LIMIT 1;";
 
         Ok(sqlx::query_as::<_, Session>(&sql)

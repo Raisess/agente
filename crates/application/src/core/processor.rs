@@ -49,11 +49,22 @@ impl Processor {
     }
 
     pub async fn handle(&mut self, prompt: String) -> Result<(), Error> {
-        // @TODO: plan prompt to improve execution harness
-        match self.recursively_process_prompt(prompt, None).await {
-            Ok(_) => {}
-            Err(error) => {
-                self.__sender.send(TaskResponse::Error(error)).await?;
+        let tasks = if prompt.len() > 300 || prompt.to_lowercase().contains("analyze") {
+            // @TODO: split complex tasks
+            // if self.is_complex(prompt) {
+            //      self.split(prompt);
+            // }
+            vec![]
+        } else {
+            vec![prompt]
+        };
+
+        for task in tasks {
+            match self.recursively_process_prompt(task, None).await {
+                Ok(_) => {}
+                Err(error) => {
+                    self.__sender.send(TaskResponse::Error(error)).await?;
+                }
             }
         }
 
@@ -106,22 +117,17 @@ impl Processor {
 
                             // @TODO: should crop the output size when too big
                             // and how much big?
-                            self.recursively_process_prompt(output, Some(hash))
-                                .await?;
+                            self.recursively_process_prompt(output, Some(hash)).await?;
                         }
                         Err(e) => {
                             self.__sender.send(TaskResponse::Error(e)).await?;
 
                             let failed_prompt = format!(
-                                "Failed to process prompt: {prompt}, use \
-                                 another tool to find context and then retry \
-                                 it"
+                                "Failed to process prompt: {prompt}, use another tool \
+                                 to find context and then retry it"
                             );
-                            self.recursively_process_prompt(
-                                failed_prompt,
-                                Some(hash),
-                            )
-                            .await?;
+                            self.recursively_process_prompt(failed_prompt, Some(hash))
+                                .await?;
                         }
                     };
                 }
@@ -131,10 +137,7 @@ impl Processor {
         Ok(())
     }
 
-    async fn process_prompt(
-        &mut self,
-        input: String,
-    ) -> Result<AskResponse, Error> {
+    async fn process_prompt(&mut self, input: String) -> Result<AskResponse, Error> {
         self.context.summarize(&self.agent, false).await?;
 
         let response = self.context.ask(&self.agent, input).await?;
@@ -147,13 +150,10 @@ impl Processor {
         arguments: &HashMap<String, String>,
     ) -> Result<(String, String), Error> {
         let tools_path = Config::default_tools_path();
-        let mut script =
-            vec![ExecutorArgument::Arg(format!("{tools_path}/{tool}.py"))];
+        let mut script = vec![ExecutorArgument::Arg(format!("{tools_path}/{tool}.py"))];
         let mut flags = arguments
             .iter()
-            .map(|(key, value)| {
-                ExecutorArgument::Flag((key.clone(), value.clone()))
-            })
+            .map(|(key, value)| ExecutorArgument::Flag((key.clone(), value.clone())))
             .collect::<Vec<_>>();
 
         script.append(&mut flags);
@@ -169,10 +169,7 @@ impl Processor {
         Ok((output, croped_output))
     }
 
-    fn generate_tool_hash(
-        tool: &String,
-        arguments: &HashMap<String, String>,
-    ) -> String {
+    fn generate_tool_hash(tool: &String, arguments: &HashMap<String, String>) -> String {
         format!(
             "{tool} {}",
             arguments

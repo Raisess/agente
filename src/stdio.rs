@@ -55,19 +55,22 @@ fn draw_input() {
 
 fn draw_banner(session_id: String) {
     let banner = format!(
-    "
-┌───────────────────────────── \x1b[32mAGENTE\x1b[0m ─────────────────────────────┐
-│  \x1b[32m[◉‿◉]\x1b[0m   > I'ready!                                              │
+        "
+┌───────────────────────────── \x1b[32mAGENTE\x1b[0m ─────────────────────────────┐\
+         
+│  \x1b[32m[◉‿◉]\x1b[0m   > I'ready!                                              \
+         │
 │ \x1b[32m/|   |\\\x1b[0m  Session: {}           │
-│ \x1b[32m |   |\x1b[0m   Running at: http://localhost:{:<27}│
+│ \x1b[32m |   |\x1b[0m   Running \
+         at: http://localhost:{:<27}│
 │ \x1b[32m/ \\ / \\\x1b[0m  Working dir: {:<43}│
 └──────────────────────────────────────────────────────────────────┘
 * Resuming sessions can have a lot of context, use a MEMORY.md to not waste tokens!
 ",
-    session_id,
-    Config::port(),
-    Config::pwd(),
-);
+        session_id,
+        Config::port(),
+        Config::pwd(),
+    );
 
     print!("{banner}\n");
 }

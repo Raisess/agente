@@ -32,8 +32,8 @@ impl ConversationRepository {
     }
 
     pub async fn append(&self, message: &Message) -> Result<(), Error> {
-        let sql = "INSERT INTO conversations(id, session_id, sent_at, role, \
-                   content) VALUES(?, ?, ?, ?, ?);";
+        let sql = "INSERT INTO conversations(id, session_id, sent_at, role, content) \
+                   VALUES(?, ?, ?, ?, ?);";
 
         sqlx::query(&sql)
             .bind(message.id)
@@ -48,9 +48,8 @@ impl ConversationRepository {
 
     pub async fn list(&self, session_id: Uuid) -> Result<Vec<Message>, Error> {
         // @TODO: increase limit and chunknize results
-        let sql = "WITH c AS (SELECT * FROM conversations WHERE session_id = \
-                   ? ORDER BY sent_at DESC LIMIT 50) SELECT * FROM c ORDER BY \
-                   sent_at ASC;";
+        let sql = "WITH c AS (SELECT * FROM conversations WHERE session_id = ? ORDER BY \
+                   sent_at DESC LIMIT 50) SELECT * FROM c ORDER BY sent_at ASC;";
 
         Ok(sqlx::query_as::<_, Message>(&sql)
             .bind(session_id)

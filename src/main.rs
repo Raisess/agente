@@ -34,12 +34,10 @@ async fn main() {
     let session = init_session(session_repository, args.session)
         .await
         .expect("Failed to init session");
-    let conversation = get_conversation(
-        conversation_repository.clone(),
-        session.id.to_string(),
-    )
-    .await
-    .expect("Failed to load conversation");
+    let conversation =
+        get_conversation(conversation_repository.clone(), session.id.to_string())
+            .await
+            .expect("Failed to load conversation");
 
     let agent = ChatGPT::new(config.chat_gpt.clone());
     let context = Context::init(
