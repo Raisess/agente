@@ -1,6 +1,6 @@
 edition = "2024"
 max_width = 90
-format_strings = true
+format_strings = false
 normalize_comments = true
 reorder_imports = true
 wrap_comments = true
