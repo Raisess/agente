@@ -105,8 +105,7 @@ impl Processor {
                         .send(TaskResponse::CommandSignature(tool.to_string()))
                         .await?;
 
-                    let response = self.execute_tool(&tool, &arguments);
-                    match response {
+                    match self.execute_tool(&tool, &arguments) {
                         Ok((output, croped_output)) => {
                             self.__sender
                                 .send(TaskResponse::CommandResponse((

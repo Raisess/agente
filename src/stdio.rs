@@ -56,10 +56,9 @@ fn draw_input() {
 fn draw_banner(session_id: String) {
     let banner = format!(
         "
-┌───────────────────────────── \x1b[32mAGENTE\x1b[0m ─────────────────────────────┐\
+┌───────────────────────────── \x1b[32mAGENTE\x1b[0m ─────────────────────────────┐│  \
+         \x1b[32m[◉‿◉]\x1b[0m   > I'ready!                                              │\
          
-│  \x1b[32m[◉‿◉]\x1b[0m   > I'ready!                                              \
-         │
 │ \x1b[32m/|   |\\\x1b[0m  Session: {}           │
 │ \x1b[32m |   |\x1b[0m   Running \
          at: http://localhost:{:<27}│
