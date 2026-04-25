@@ -12,8 +12,6 @@ use agente_infrastructure::config::Config;
 use crate::core::append_to_conversation;
 use crate::repositories::conversation::ConversationRepository;
 
-const MAX_MESSAGE_HISTORY_SIZE: usize = 50;
-
 pub struct Context {
     conversation_repository: Arc<ConversationRepository>,
     session_id: String,
@@ -98,7 +96,7 @@ impl Context {
         agent: &Box<dyn AiProvider>,
         force: bool,
     ) -> Result<(), AiProviderError> {
-        if self.messages.len() >= MAX_MESSAGE_HISTORY_SIZE || force {
+        if self.messages.len() >= Config::max_context_memory_size() || force {
             info!("summarizing...");
             let messages = self.messages.drain(1..).collect::<Vec<_>>();
             let result = agent
