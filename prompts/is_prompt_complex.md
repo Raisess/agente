@@ -1,0 +1,1 @@
+If the next prompt is has more than one action, return true, otherwise return false, example: read file <filename>: returns false, read file <filename> and write something to <filename>: returns true.

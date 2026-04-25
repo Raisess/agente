@@ -8,20 +8,28 @@ use agente_domain::error::Error;
 use agente_domain::ports::ai_provider::{AiProvider, AskResponse};
 use agente_domain::ports::io::{Executor, ExecutorArgument};
 use agente_infrastructure::adapters::util::cmd::CMD;
+use agente_infrastructure::adapters::util::load_file::load;
 use agente_infrastructure::config::Config;
 
 use crate::core::context::Context;
 
-const MAX_COMMAND_OUTPUT_SIZE: usize = 2500;
+const MAX_COMMAND_OUTPUT_SIZE: usize = 1000;
 
 // @TODO: link a message id, will be useful for websocket server to know message
 // and tool contexts
 pub enum TaskResponse {
+    Done,
     Thinking,
     MessageResponse(String),
     CommandSignature(String),
     CommandResponse((String, String)),
     Error(Error),
+}
+
+pub struct ToolResponse {
+    pub output: String,
+    pub croped_output: String,
+    pub refeed: bool,
 }
 
 pub struct Processor {
@@ -50,13 +58,13 @@ impl Processor {
 
     pub async fn handle(&mut self, prompt: String) -> Result<(), Error> {
         let tasks = if prompt.len() > 300 || prompt.to_lowercase().contains("analyze") {
-            // @TODO: split complex tasks
-            // if self.is_complex(prompt) {
-            //      self.split(prompt);
-            // }
             vec![]
         } else {
-            vec![prompt]
+            if self.is_prompt_complex(prompt.clone()).await? {
+                self.split_prompt(prompt).await?
+            } else {
+                vec![prompt]
+            }
         };
 
         for task in tasks {
@@ -106,17 +114,21 @@ impl Processor {
                         .await?;
 
                     match self.execute_tool(&tool, &arguments) {
-                        Ok((output, croped_output)) => {
+                        Ok(tool_response) => {
                             self.__sender
                                 .send(TaskResponse::CommandResponse((
                                     tool,
-                                    croped_output,
+                                    tool_response.croped_output,
                                 )))
                                 .await?;
 
-                            // @TODO: should crop the output size when too big
-                            // and how much big?
-                            self.recursively_process_prompt(output, Some(hash)).await?;
+                            if tool_response.refeed {
+                                self.recursively_process_prompt(
+                                    tool_response.output,
+                                    Some(hash),
+                                )
+                                .await?;
+                            }
                         }
                         Err(e) => {
                             self.__sender.send(TaskResponse::Error(e)).await?;
@@ -133,6 +145,7 @@ impl Processor {
             }
         }
 
+        self.__sender.send(TaskResponse::Done).await?;
         Ok(())
     }
 
@@ -143,11 +156,24 @@ impl Processor {
         Ok(response)
     }
 
+    async fn split_prompt(&self, input: String) -> Result<Vec<String>, Error> {
+        let result = self.agent.plain_ask(task_splitter_prompt(), input).await?;
+        Ok(result.split(";").map(|i| i.trim().to_string()).collect())
+    }
+
+    async fn is_prompt_complex(&self, input: String) -> Result<bool, Error> {
+        let result = self
+            .agent
+            .plain_ask(is_prompt_complex_prompt(), input)
+            .await?;
+        Ok(if result == "true" { true } else { false })
+    }
+
     fn execute_tool(
         &self,
         tool: &String,
         arguments: &HashMap<String, String>,
-    ) -> Result<(String, String), Error> {
+    ) -> Result<ToolResponse, Error> {
         let tools_path = Config::default_tools_path();
         let mut script = vec![ExecutorArgument::Arg(format!("{tools_path}/{tool}.py"))];
         let mut flags = arguments
@@ -165,7 +191,11 @@ impl Processor {
         let mut croped_output = output.clone();
         croped_output.truncate(MAX_COMMAND_OUTPUT_SIZE);
 
-        Ok((output, croped_output))
+        Ok(ToolResponse {
+            output,
+            croped_output,
+            refeed: if tool != "write" { true } else { false },
+        })
     }
 
     fn generate_tool_hash(tool: &String, arguments: &HashMap<String, String>) -> String {
@@ -178,4 +208,13 @@ impl Processor {
                 .join(", ")
         )
     }
+}
+
+fn task_splitter_prompt() -> String {
+    load("prompts/task_splitter.md", vec![]).expect("Failed to load task splitter prompt")
+}
+
+fn is_prompt_complex_prompt() -> String {
+    load("prompts/is_prompt_complex.md", vec![])
+        .expect("Failed to load is prompt complex prompt")
 }

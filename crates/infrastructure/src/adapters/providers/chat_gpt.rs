@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use agente_domain::ports::ai_provider::{
-    AiProvider, AiProviderError, AskResponse, MessageRequest,
+    AiProvider, AiProviderError, AskResponse, MessageRequest, MessageRole,
 };
 
 use crate::adapters::providers::load_tools;
@@ -33,8 +33,71 @@ impl ChatGPT {
         &self,
         messages: Vec<MessageRequest>,
     ) -> Result<Vec<Output>, AiProviderError> {
+        let input = messages
+            .iter()
+            .map(|message| {
+                serde_json::json!({
+                  "role": message.role.to_string(),
+                  "content": message.content
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let json = serde_json::json!({
+            "input": input,
+            "model": self.config.model, // e.g.: gpt-3.5-turbo
+            "tools": load_tools(),
+            "tool_choice": "auto",
+        });
+
+        let data = self.send_message(json).await?;
+        Ok(serde_json::from_value(data).unwrap())
+    }
+
+    async fn handle_plain_message(
+        &self,
+        messages: Vec<MessageRequest>,
+    ) -> Result<String, AiProviderError> {
+        let input = messages
+            .iter()
+            .map(|message| {
+                serde_json::json!({
+                  "role": message.role.to_string(),
+                  "content": message.content
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let json = serde_json::json!({
+            "input": input,
+            "model": self.config.model, // e.g.: gpt-3.5-turbo
+        });
+
+        let data = self.send_message(json).await?;
+        let value = data
+            .get(0)
+            .unwrap()
+            .get("content")
+            .unwrap()
+            .get(0)
+            .unwrap()
+            .get("text")
+            .unwrap()
+            .to_owned();
+        Ok(serde_json::from_value(value).unwrap())
+    }
+
+    async fn send_message(
+        &self,
+        json: serde_json::Value,
+    ) -> Result<serde_json::Value, AiProviderError> {
         let response = self
-            .send_message(messages)
+            .client
+            .post("https://api.openai.com/v1/responses")
+            .header("Content-Type", "application/json")
+            .header("Authorization", format!("Bearer {}", self.config.api_key))
+            .json(&json)
+            .send()
             .await
             .map_err(|error| AiProviderError::Other(error.to_string()))?;
 
@@ -50,9 +113,7 @@ impl ChatGPT {
 
         let output = data.get("output");
         match output {
-            Some(valid_output) => {
-                Ok(serde_json::from_value(valid_output.clone()).unwrap())
-            }
+            Some(valid_output) => Ok(valid_output.clone()),
             None => {
                 eprintln!("Response: {data:#?}");
                 Err(AiProviderError::FailedToParseResponse(
@@ -60,36 +121,6 @@ impl ChatGPT {
                 ))
             }
         }
-    }
-
-    async fn send_message(
-        &self,
-        messages: Vec<MessageRequest>,
-    ) -> Result<reqwest::Response, reqwest::Error> {
-        let input = messages
-            .iter()
-            .map(|message| {
-                serde_json::json!({
-                  "role": message.role.to_string(),
-                  "content": message.content
-                })
-            })
-            .collect::<Vec<_>>();
-
-        let json = serde_json::json!({
-            "input": input,
-            "model": self.config.model, // gpt-3.5-turbo
-            "tools": load_tools(),
-            "tool_choice": "auto",
-        });
-
-        self.client
-            .post("https://api.openai.com/v1/responses")
-            .header("Content-Type", "application/json")
-            .header("Authorization", format!("Bearer {}", self.config.api_key))
-            .json(&json)
-            .send()
-            .await
     }
 }
 
@@ -121,6 +152,24 @@ impl AiProvider for ChatGPT {
                     .collect::<Vec<_>>(),
             ),
         })
+    }
+
+    async fn plain_ask(
+        &self,
+        system: String,
+        content: String,
+    ) -> Result<String, AiProviderError> {
+        self.handle_plain_message(vec![
+            MessageRequest {
+                role: MessageRole::System,
+                content: system,
+            },
+            MessageRequest {
+                role: MessageRole::User,
+                content,
+            },
+        ])
+        .await
     }
 }
 

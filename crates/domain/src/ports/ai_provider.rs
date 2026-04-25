@@ -12,6 +12,13 @@ pub trait AiProvider: Send + Sync {
         &self,
         messages: Vec<MessageRequest>,
     ) -> Result<AskResponse, AiProviderError>;
+    /// Ask the agent without needing a history, just plain message sending
+    /// without tool relaying
+    async fn plain_ask(
+        &self,
+        system: String,
+        content: String,
+    ) -> Result<String, AiProviderError>;
 }
 
 #[derive(Clone, Debug, Error)]

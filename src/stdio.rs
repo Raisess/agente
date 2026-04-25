@@ -12,19 +12,19 @@ pub async fn start_stdio(session: &Session, processor: &mut Processor) -> () {
         let mut listener = cloned_listener.lock().await;
         while let Some(response) = listener.recv().await {
             match response {
+                TaskResponse::Done => draw_input(),
                 TaskResponse::Thinking => println!("Thinking..."),
                 TaskResponse::MessageResponse(message) => {
                     println!("[◉‿◉] > Agente: {message}");
-                    draw_input();
                 }
                 TaskResponse::CommandSignature(command) => {
-                    println!("< Running({command})")
+                    println!("< Running({command})");
                 }
                 TaskResponse::CommandResponse((command, result)) => {
                     if result.is_empty() {
-                        println!("> Resolved({command})")
+                        println!("> Resolved({command})");
                     } else {
-                        println!("> Resolved({command}): {result}")
+                        println!("> Resolved({command}): {result}");
                     }
                 }
                 TaskResponse::Error(error) => eprintln!("> System: {error:#?}"),
