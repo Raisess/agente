@@ -57,15 +57,7 @@ impl Processor {
     }
 
     pub async fn handle(&mut self, prompt: String) -> Result<(), Error> {
-        let tasks = if prompt.len() > 300 || prompt.to_lowercase().contains("analyze") {
-            vec![]
-        } else {
-            if self.is_prompt_complex(prompt.clone()).await? {
-                self.split_prompt(prompt).await?
-            } else {
-                vec![prompt]
-            }
-        };
+        let tasks = self.refine_prompt(prompt).await?;
 
         for task in tasks {
             match self.recursively_process_prompt(task, None).await {
@@ -154,6 +146,18 @@ impl Processor {
 
         let response = self.context.ask(&self.agent, input).await?;
         Ok(response)
+    }
+
+    async fn refine_prompt(&self, input: String) -> Result<Vec<String>, Error> {
+        if input.len() > 300 || input.to_lowercase().contains("analyze") {
+            Ok(self.split_prompt(input).await?)
+        } else {
+            if self.is_prompt_complex(input.clone()).await? {
+                Ok(self.split_prompt(input).await?)
+            } else {
+                Ok(vec![input])
+            }
+        }
     }
 
     async fn split_prompt(&self, input: String) -> Result<Vec<String>, Error> {
