@@ -14,6 +14,7 @@ pub trait AiProvider: Send + Sync {
     ) -> Result<AskResponse, AiProviderError>;
     /// Ask the agent without needing a history, just plain message sending
     /// without tool relaying
+    /// @NOTE: may use a cheap model
     async fn plain_ask(
         &self,
         system: String,

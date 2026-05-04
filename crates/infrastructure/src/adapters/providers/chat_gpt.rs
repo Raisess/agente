@@ -13,7 +13,9 @@ pub struct ChatGPTConfig {
     #[serde(rename = "chat_gpt::api_key")]
     pub api_key: String,
     #[serde(rename = "chat_gpt::model")]
-    pub model: String,
+    pub model: String, // e.g.: gpt-4
+    #[serde(rename = "chat_gpt::cheap_model")]
+    pub cheap_model: Option<String>, // e.g.: gpt-3.5-turbo
 }
 
 pub struct ChatGPT {
@@ -31,6 +33,7 @@ impl ChatGPT {
 
     async fn handle_message_request(
         &self,
+        model: &String,
         messages: Vec<MessageRequest>,
     ) -> Result<Vec<Output>, AiProviderError> {
         let input = messages
@@ -45,7 +48,7 @@ impl ChatGPT {
 
         let json = serde_json::json!({
             "input": input,
-            "model": self.config.model, // e.g.: gpt-3.5-turbo
+            "model": model,
             "tools": load_tools(),
             "tool_choice": "auto",
         });
@@ -56,6 +59,7 @@ impl ChatGPT {
 
     async fn handle_plain_message(
         &self,
+        model: &String,
         messages: Vec<MessageRequest>,
     ) -> Result<String, AiProviderError> {
         let input = messages
@@ -70,7 +74,7 @@ impl ChatGPT {
 
         let json = serde_json::json!({
             "input": input,
-            "model": self.config.model, // e.g.: gpt-3.5-turbo
+            "model": model,
         });
 
         let data = self.send_message(json).await?;
@@ -130,7 +134,9 @@ impl AiProvider for ChatGPT {
         &self,
         messages: Vec<MessageRequest>,
     ) -> Result<AskResponse, AiProviderError> {
-        let output = self.handle_message_request(messages).await?;
+        let output = self
+            .handle_message_request(&self.config.model, messages)
+            .await?;
 
         Ok(match &output[0] {
             Output::Text { content, .. } => {
@@ -159,7 +165,13 @@ impl AiProvider for ChatGPT {
         system: String,
         content: String,
     ) -> Result<String, AiProviderError> {
-        self.handle_plain_message(vec![
+        let model = self
+            .config
+            .cheap_model
+            .clone()
+            .unwrap_or(self.config.model.clone());
+
+        let messages = vec![
             MessageRequest {
                 role: MessageRole::System,
                 content: system,
@@ -168,8 +180,9 @@ impl AiProvider for ChatGPT {
                 role: MessageRole::User,
                 content,
             },
-        ])
-        .await
+        ];
+
+        self.handle_plain_message(&model, messages).await
     }
 }
 
