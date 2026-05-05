@@ -6,7 +6,7 @@ use agente_domain::models::message::Message;
 use agente_domain::ports::ai_provider::{
     AiProvider, AiProviderError, AskResponse, MessageRequest, MessageRole,
 };
-use agente_infrastructure::adapters::util::load_file::load;
+use agente_infrastructure::adapters::util::load_file_installed::load_file_installed;
 use agente_infrastructure::config::Config;
 
 use crate::core::append_to_conversation;
@@ -131,11 +131,9 @@ fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
         .collect::<Vec<_>>()
         .join(", ");
 
-    load("prompts/summarizer.md", vec![("messages", messages_prompt)])
-        .expect("Failed to load summarizer prompt")
+    load_file_installed("prompts/summarizer.md", vec![("messages", messages_prompt)])
 }
 
 fn system_prompt() -> String {
-    load("prompts/system.md", vec![("current_dir", Config::pwd())])
-        .expect("Failed to load system prompt")
+    load_file_installed("prompts/system.md", vec![("current_dir", Config::pwd())])
 }

@@ -8,7 +8,7 @@ use agente_domain::error::Error;
 use agente_domain::ports::ai_provider::{AiProvider, AskResponse};
 use agente_domain::ports::io::{Executor, ExecutorArgument};
 use agente_infrastructure::adapters::util::cmd::CMD;
-use agente_infrastructure::adapters::util::load_file::load;
+use agente_infrastructure::adapters::util::load_file_installed::load_file_installed;
 use agente_infrastructure::config::Config;
 
 use crate::core::context::Context;
@@ -67,6 +67,8 @@ impl Processor {
                 }
             }
         }
+
+        self.__sender.send(TaskResponse::Done).await?;
 
         Ok(())
     }
@@ -137,7 +139,6 @@ impl Processor {
             }
         }
 
-        self.__sender.send(TaskResponse::Done).await?;
         Ok(())
     }
 
@@ -215,10 +216,9 @@ impl Processor {
 }
 
 fn task_splitter_prompt() -> String {
-    load("prompts/task_splitter.md", vec![]).expect("Failed to load task splitter prompt")
+    load_file_installed("prompts/task_splitter.md", vec![])
 }
 
 fn is_prompt_complex_prompt() -> String {
-    load("prompts/is_prompt_complex.md", vec![])
-        .expect("Failed to load is prompt complex prompt")
+    load_file_installed("prompts/is_prompt_complex.md", vec![])
 }
