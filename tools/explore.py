@@ -5,7 +5,19 @@ import argparse
 
 from __common import to_path
 
-FOLDERS_TO_IGNORE = [".git", "node_modules", "target", "build", "dist", ".next", ".cache", "__pycache__", "venv"]
+PATHS_TO_IGNORE = [
+  ".git",
+  "node_modules",
+  "target",
+  "build",
+  "dist",
+  ".next",
+  ".cache",
+  "__pycache__",
+  "__venv",
+  "venv",
+  ".env"
+]
 
 def find_command(path: str, ignore_list: list[str]) -> str:
   file_path = str(to_path(path))
@@ -38,7 +50,7 @@ def main():
   )
 
   args = parser.parse_args()
-  output = find_command(args.path, FOLDERS_TO_IGNORE)
+  output = find_command(args.path, PATHS_TO_IGNORE)
   print(output)
 
 
