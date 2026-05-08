@@ -20,6 +20,7 @@ pub struct Context {
 
 impl Context {
     pub fn init(
+        name: String,
         conversation_repository: Arc<ConversationRepository>,
         session_id: String,
         messages: Vec<Message>,
@@ -27,7 +28,7 @@ impl Context {
         // @TODO: should get messages from conversation as summarized
         let mut message_requests = vec![MessageRequest {
             role: MessageRole::System,
-            content: system_prompt(),
+            content: system_prompt(name),
         }];
 
         for message in messages {
@@ -134,6 +135,9 @@ fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
     load_file_installed("prompts/summarizer.md", vec![("messages", messages_prompt)])
 }
 
-fn system_prompt() -> String {
-    load_file_installed("prompts/system.md", vec![("current_dir", Config::pwd())])
+fn system_prompt(name: String) -> String {
+    load_file_installed(
+        "prompts/system.md",
+        vec![("name", name), ("current_dir", Config::pwd())],
+    )
 }

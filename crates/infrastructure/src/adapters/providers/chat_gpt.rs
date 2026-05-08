@@ -10,11 +10,8 @@ use crate::adapters::providers::load_tools;
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct ChatGPTConfig {
-    #[serde(rename = "chat_gpt::api_key")]
     pub api_key: String,
-    #[serde(rename = "chat_gpt::model")]
-    pub model: String, // e.g.: gpt-4
-    #[serde(rename = "chat_gpt::cheap_model")]
+    pub model: String,               // e.g.: gpt-4
     pub cheap_model: Option<String>, // e.g.: gpt-3.5-turbo
 }
 

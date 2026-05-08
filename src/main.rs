@@ -39,15 +39,18 @@ async fn main() {
             .await
             .expect("Failed to load conversation");
 
+    let name = config.name.clone().unwrap_or("Agente".to_string());
+
     let agent = ChatGPT::new(config.chat_gpt.clone());
     let context = Context::init(
+        name.clone(),
         conversation_repository,
         session.id.to_string(),
         conversation,
     );
     let mut processor = Processor::init(Box::new(agent), context);
 
-    start_stdio(&session, &mut processor).await;
+    start_stdio(name, &session, &mut processor).await;
 }
 
 async fn setup() -> (

@@ -5,7 +5,11 @@ use agente_domain::models::session::Session;
 use agente_infrastructure::config::Config;
 
 /// Starts the stdio interface
-pub async fn start_stdio(session: &Session, processor: &mut Processor) -> () {
+pub async fn start_stdio(
+    name: String,
+    session: &Session,
+    processor: &mut Processor,
+) -> () {
     let listener = processor.listener();
     tokio::spawn(async move {
         let cloned_listener = listener.clone();
@@ -15,7 +19,7 @@ pub async fn start_stdio(session: &Session, processor: &mut Processor) -> () {
                 TaskResponse::Done => draw_input(),
                 TaskResponse::Thinking => println!("Thinking..."),
                 TaskResponse::MessageResponse(message) => {
-                    println!("[◉‿◉] > Agente: {message}");
+                    println!("[◉‿◉] > {name}: {message}");
                 }
                 TaskResponse::CommandSignature(command) => {
                     println!("< Running({command})");

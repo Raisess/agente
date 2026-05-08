@@ -10,8 +10,9 @@ use crate::adapters::providers::chat_gpt::ChatGPTConfig;
 /// Represents the agent settings
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct Config {
+    /// Agente alias name
+    pub name: Option<String>,
     /// Chat GPT config
-    #[serde(flatten)]
     pub chat_gpt: ChatGPTConfig,
 }
 
