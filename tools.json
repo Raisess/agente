@@ -35,5 +35,17 @@
       },
       "required": ["path", "content"]
     }
+  },
+  {
+    "type": "function",
+    "name": "search",
+    "description": "Search for info on the web.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {"type": "string", "description": "The search query text"}
+      },
+      "required": ["query"]
+    }
   }
 ]
