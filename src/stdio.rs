@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::{collections::HashMap, io::Write};
 
 use agente_application::core::processor::{Processor, TaskResponse};
 use agente_domain::{error::Error, models::session::Session};
@@ -27,8 +27,8 @@ pub async fn start_stdio(
                 TaskResponse::CommandSignature(command) => {
                     draw_command_signature(command)
                 }
-                TaskResponse::CommandResponse((command, response)) => {
-                    draw_command_response(command, response)
+                TaskResponse::CommandResponse((command, response, arguments)) => {
+                    draw_command_response(command, response, arguments)
                 }
                 TaskResponse::Error(error) => draw_error(error),
             };
@@ -63,10 +63,20 @@ fn draw_error(error: Error) {
 
 const MAX_COMMAND_OUTPUT_SIZE: usize = 500;
 
-fn draw_command_response(command: String, response: String) {
+fn draw_command_response(
+    command: String,
+    response: String,
+    arguments: HashMap<String, String>,
+) {
+    let parsed_args = arguments
+        .iter()
+        .map(|(key, value)| format!("{key}: {value}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+
     if response.is_empty() {
         println!(
-            "{}{}< Resolved({}{command}{}{}){}",
+            "{}{}< Resolved({}{command}({parsed_args}){}{}){}",
             Ansi::BOLD,
             Ansi::FG_BLUE,
             Ansi::RESET,
@@ -78,7 +88,7 @@ fn draw_command_response(command: String, response: String) {
         let mut cropped_response = response.clone();
         cropped_response.truncate(MAX_COMMAND_OUTPUT_SIZE);
         println!(
-            "{}{}< Resolved({}{command}{}{}){}: {cropped_response}...",
+            "{}{}< Resolved({}{command}({parsed_args}){}{}){}: {cropped_response}...",
             Ansi::BOLD,
             Ansi::FG_BLUE,
             Ansi::RESET,

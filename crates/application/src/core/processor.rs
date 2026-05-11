@@ -20,7 +20,7 @@ pub enum TaskResponse {
     Thinking,
     MessageResponse(String),
     CommandSignature(String),
-    CommandResponse((String, String)),
+    CommandResponse((String, String, HashMap<String, String>)),
     Error(Error),
 }
 
@@ -110,6 +110,7 @@ impl Processor {
                                 .send(TaskResponse::CommandResponse((
                                     tool,
                                     tool_response.output.clone(),
+                                    arguments,
                                 )))
                                 .await?;
 
