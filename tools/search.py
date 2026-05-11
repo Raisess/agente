@@ -4,7 +4,7 @@ import argparse
 
 from ddgs import DDGS
 
-def search(query):
+def search(query: str) -> None:
   output = ""
   with DDGS() as ddgs:
     for r in ddgs.text(query, max_results=5):
@@ -12,10 +12,10 @@ def search(query):
 
   print(output.strip())
 
-# Create command-line interface
+
 if __name__ == "__main__":
-  parser = argparse.ArgumentParser(description='Search the web with a query')
-  parser.add_argument('--query', type=str, help='Query for the search engine')
+  parser = argparse.ArgumentParser(description="Search the web with a query")
+  parser.add_argument("--query", type=str, help="Query for the search engine")
   args = parser.parse_args()
   
   search(args.query)

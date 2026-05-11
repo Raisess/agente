@@ -1,0 +1,2 @@
+ddgs==9.14.2
+trafilatura==2.0.0

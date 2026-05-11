@@ -47,5 +47,17 @@
       },
       "required": ["query"]
     }
+  },
+  {
+    "type": "function",
+    "name": "fetch",
+    "description": "Fetch a web page from a url, normally used after the search tool.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "url": {"type": "string", "description": "The URL to be fetched"}
+      },
+      "required": ["url"]
+    }
   }
 ]
