@@ -3,25 +3,19 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use agente_domain::ports::ai_provider::{
-    AiProvider, AiProviderError, AskResponse, MessageRequest, MessageRole,
+    AiProvider, AiProviderConfig, AiProviderError, AskResponse, MessageRequest,
+    MessageRole,
 };
 
 use crate::adapters::util::load_file_installed::load_file_installed;
 
-#[derive(Debug, Default, Clone, Deserialize, Serialize)]
-pub struct ChatGPTConfig {
-    pub api_key: String,
-    pub model: String,               // e.g.: gpt-4
-    pub cheap_model: Option<String>, // e.g.: gpt-3.5-turbo
-}
-
-pub struct ChatGPT {
-    config: ChatGPTConfig,
+pub struct OpenAI {
+    config: AiProviderConfig,
     client: reqwest::Client,
 }
 
-impl ChatGPT {
-    pub fn new(config: ChatGPTConfig) -> Self {
+impl OpenAI {
+    pub fn new(config: AiProviderConfig) -> Self {
         Self {
             config,
             client: reqwest::Client::new(),
@@ -132,7 +126,7 @@ impl ChatGPT {
 }
 
 #[async_trait::async_trait]
-impl AiProvider for ChatGPT {
+impl AiProvider for OpenAI {
     async fn ask(
         &self,
         messages: Vec<MessageRequest>,

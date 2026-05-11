@@ -1,6 +1,14 @@
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
+
+#[derive(Debug, Default, Clone, Deserialize, Serialize)]
+pub struct AiProviderConfig {
+    pub api_key: String,
+    pub model: String,               // e.g.: gpt-4
+    pub cheap_model: Option<String>, // e.g.: gpt-3.5-turbo
+}
 
 /// This is the Agent interface, it can represent a AI agent implementation,
 /// e.g.: ChatGPT, DeepSeek, etc.

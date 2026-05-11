@@ -11,7 +11,7 @@ use agente_application::core::{get_conversation, init_session};
 use agente_application::repositories::conversation::ConversationRepository;
 use agente_application::repositories::session::SessionRepository;
 use agente_infrastructure::adapters::database::sqlite::SqliteDatabase;
-use agente_infrastructure::adapters::providers::chat_gpt::ChatGPT;
+use agente_infrastructure::adapters::providers::openai::OpenAI;
 use agente_infrastructure::adapters::util::file_system::FileSystem;
 use agente_infrastructure::config::Config;
 
@@ -41,7 +41,7 @@ async fn main() {
 
     let name = config.name.clone().unwrap_or("Agente".to_string());
 
-    let agent = ChatGPT::new(config.chat_gpt.clone());
+    let agent = OpenAI::new(config.openai.clone());
     let context = Context::init(
         name.clone(),
         conversation_repository,
@@ -68,7 +68,7 @@ async fn setup() -> (
     };
 
     // @TODO: support select provider
-    if config.chat_gpt.api_key.is_empty() {
+    if config.openai.api_key.is_empty() {
         panic!("No API Key provided");
     }
 

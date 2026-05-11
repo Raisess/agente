@@ -3,17 +3,16 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
+use agente_domain::ports::ai_provider::AiProviderConfig;
 use agente_domain::ports::io::{Reader, Writer};
-
-use crate::adapters::providers::chat_gpt::ChatGPTConfig;
 
 /// Represents the agent settings
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct Config {
     /// Agente alias name
     pub name: Option<String>,
-    /// Chat GPT config
-    pub chat_gpt: ChatGPTConfig,
+    /// OpenAI config
+    pub openai: AiProviderConfig,
 }
 
 impl Config {
