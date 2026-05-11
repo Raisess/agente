@@ -13,8 +13,6 @@ use agente_infrastructure::config::Config;
 
 use crate::core::context::Context;
 
-const MAX_COMMAND_OUTPUT_SIZE: usize = 1000;
-
 // @TODO: link a message id, will be useful for websocket server to know message
 // and tool contexts
 pub enum TaskResponse {
@@ -28,7 +26,6 @@ pub enum TaskResponse {
 
 pub struct ToolResponse {
     pub output: String,
-    pub croped_output: String,
     pub refeed: bool,
 }
 
@@ -112,7 +109,7 @@ impl Processor {
                             self.__sender
                                 .send(TaskResponse::CommandResponse((
                                     tool,
-                                    tool_response.croped_output,
+                                    tool_response.output.clone(),
                                 )))
                                 .await?;
 
@@ -171,7 +168,7 @@ impl Processor {
             .agent
             .plain_ask(is_prompt_complex_prompt(), input)
             .await?;
-        Ok(if result == "true" { true } else { false })
+        Ok(result == "true")
     }
 
     fn execute_tool(
@@ -193,13 +190,10 @@ impl Processor {
             script,
             vec![("WORKING_DIR".to_string(), Config::pwd())],
         )?;
-        let mut croped_output = output.clone();
-        croped_output.truncate(MAX_COMMAND_OUTPUT_SIZE);
 
         Ok(ToolResponse {
             output,
-            croped_output,
-            refeed: if tool != "write" { true } else { false },
+            refeed: tool != "write",
         })
     }
 

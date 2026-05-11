@@ -61,17 +61,27 @@ fn draw_error(error: Error) {
     )
 }
 
+const MAX_COMMAND_OUTPUT_SIZE: usize = 500;
+
 fn draw_command_response(command: String, response: String) {
     if response.is_empty() {
         println!(
-            "{}{}> Resolved({command}){}",
+            "{}{}< Resolved({}{command}{}{}){}",
+            Ansi::BOLD,
+            Ansi::FG_BLUE,
+            Ansi::RESET,
             Ansi::BOLD,
             Ansi::FG_BLUE,
             Ansi::RESET
         );
     } else {
+        let mut cropped_response = response.clone();
+        cropped_response.truncate(MAX_COMMAND_OUTPUT_SIZE);
         println!(
-            "{}{}> Resolved({command}){}: {response}...",
+            "{}{}< Resolved({}{command}{}{}){}: {cropped_response}...",
+            Ansi::BOLD,
+            Ansi::FG_BLUE,
+            Ansi::RESET,
             Ansi::BOLD,
             Ansi::FG_BLUE,
             Ansi::RESET
@@ -81,7 +91,10 @@ fn draw_command_response(command: String, response: String) {
 
 fn draw_command_signature(command: String) {
     println!(
-        "{}{}< Running({command}){}",
+        "{}{}< Running({}{command}{}{}){}",
+        Ansi::BOLD,
+        Ansi::FG_BLUE,
+        Ansi::RESET,
         Ansi::BOLD,
         Ansi::FG_BLUE,
         Ansi::RESET
