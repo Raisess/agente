@@ -6,5 +6,7 @@ cp $PWD/tools.json $HOME/.agente/
 cp -r $PWD/tools $HOME/.agente/
 cp -r $PWD/prompts $HOME/.agente/
 
+python3 -m pip install -r ./tools/requirements.txt --break-system-packages
+
 # Builds and install the project
 cargo install --path .
