@@ -6,7 +6,7 @@ use agente_domain::ports::ai_provider::{
     AiProvider, AiProviderError, AskResponse, MessageRequest, MessageRole,
 };
 
-use crate::adapters::providers::load_tools;
+use crate::adapters::util::load_file_installed::load_file_installed;
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct ChatGPTConfig {
@@ -43,10 +43,16 @@ impl ChatGPT {
             })
             .collect::<Vec<_>>();
 
+        let tools = serde_json::from_str::<serde_json::Value>(&load_file_installed(
+            "tools.json",
+            vec![],
+        ))
+        .expect("Failed to parse tools json");
+
         let json = serde_json::json!({
             "input": input,
             "model": model,
-            "tools": load_tools(),
+            "tools": tools,
             "tool_choice": "auto",
         });
 
