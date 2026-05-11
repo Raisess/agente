@@ -54,19 +54,31 @@ impl Processor {
     }
 
     pub async fn handle(&mut self, prompt: String) -> Result<(), Error> {
-        let tasks = self.refine_prompt(prompt).await?;
+        match prompt.as_str() {
+            "/exit" => std::process::exit(0),
+            "/compact" => {
+                self.context.summarize(&self.agent, true).await?;
+                self.__sender
+                    .send(TaskResponse::MessageResponse(
+                        "Conversation compacted!".to_string(),
+                    ))
+                    .await?;
+            }
+            _ => {
+                let tasks = self.refine_prompt(prompt).await?;
 
-        for task in tasks {
-            match self.recursively_process_prompt(task, None).await {
-                Ok(_) => {}
-                Err(error) => {
-                    self.__sender.send(TaskResponse::Error(error)).await?;
+                for task in tasks {
+                    match self.recursively_process_prompt(task, None).await {
+                        Ok(_) => {}
+                        Err(error) => {
+                            self.__sender.send(TaskResponse::Error(error)).await?;
+                        }
+                    }
                 }
             }
         }
 
         self.__sender.send(TaskResponse::Done).await?;
-
         Ok(())
     }
 
