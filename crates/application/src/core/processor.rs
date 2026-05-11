@@ -147,14 +147,21 @@ impl Processor {
     }
 
     async fn refine_prompt(&self, input: String) -> Result<Vec<String>, Error> {
-        if input.len() > 300 || input.to_lowercase().contains("analyze") {
+        let pre_splitted_input =
+            input.split(",").map(|i| i.to_string()).collect::<Vec<_>>();
+
+        if pre_splitted_input.len() > 1 {
+            if input.len() <= 150 {
+                return Ok(pre_splitted_input);
+            }
+
+            Ok(self.split_prompt(input).await?)
+        } else if input.len() < 50 {
+            Ok(vec![input])
+        } else if self.is_prompt_complex(input.clone()).await? {
             Ok(self.split_prompt(input).await?)
         } else {
-            if self.is_prompt_complex(input.clone()).await? {
-                Ok(self.split_prompt(input).await?)
-            } else {
-                Ok(vec![input])
-            }
+            Ok(vec![input])
         }
     }
 
