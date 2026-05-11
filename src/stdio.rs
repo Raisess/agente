@@ -24,10 +24,8 @@ pub async fn start_stdio(
                 TaskResponse::MessageResponse(message) => {
                     draw_message(&_name, message);
                 }
-                TaskResponse::CommandSignature(command) => {
-                    draw_command_signature(command)
-                }
-                TaskResponse::CommandResponse((command, response, arguments)) => {
+                TaskResponse::ToolSignature(command) => draw_command_signature(command),
+                TaskResponse::ToolResponse((command, response, arguments)) => {
                     draw_command_response(command, response, arguments)
                 }
                 TaskResponse::Error(error) => draw_error(error),

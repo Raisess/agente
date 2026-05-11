@@ -19,8 +19,8 @@ pub enum TaskResponse {
     Done,
     Thinking,
     MessageResponse(String),
-    CommandSignature(String),
-    CommandResponse((String, String, HashMap<String, String>)),
+    ToolSignature(String),
+    ToolResponse((String, String, HashMap<String, String>)),
     Error(Error),
 }
 
@@ -101,13 +101,13 @@ impl Processor {
                     }
 
                     self.__sender
-                        .send(TaskResponse::CommandSignature(tool.to_string()))
+                        .send(TaskResponse::ToolSignature(tool.to_string()))
                         .await?;
 
                     match self.execute_tool(&tool, &arguments) {
                         Ok(tool_response) => {
                             self.__sender
-                                .send(TaskResponse::CommandResponse((
+                                .send(TaskResponse::ToolResponse((
                                     tool,
                                     tool_response.output.clone(),
                                     arguments,
