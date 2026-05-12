@@ -1,15 +1,17 @@
 use std::sync::Arc;
 
-use agente::stdio::start_stdio;
 use clap::Parser;
 use tracing_subscriber;
 use tracing_subscriber::EnvFilter;
+
+use agente::stdio::start_stdio;
 
 use agente_application::core::context::Context;
 use agente_application::core::processor::Processor;
 use agente_application::core::{get_conversation, init_session};
 use agente_application::repositories::conversation::ConversationRepository;
 use agente_application::repositories::session::SessionRepository;
+use agente_domain::ports::ai_provider::AiProvider;
 use agente_infrastructure::adapters::database::sqlite::SqliteDatabase;
 use agente_infrastructure::adapters::providers::openai::OpenAI;
 use agente_infrastructure::adapters::util::file_system::FileSystem;
@@ -21,6 +23,9 @@ struct Args {
     /// Session ID
     #[arg(long)]
     session: Option<String>,
+    /// AI Provider
+    #[arg(long)]
+    provider: Option<Provider>,
 }
 
 #[tokio::main]
@@ -39,16 +44,17 @@ async fn main() {
             .await
             .expect("Failed to load conversation");
 
+    let provider = args.provider.unwrap_or(Provider::OPENAI);
     let name = config.name.clone().unwrap_or("Agente".to_string());
 
-    let agent = OpenAI::new(config.openai.clone());
+    let agent = provider_factory(provider, &config);
     let context = Context::init(
         name.clone(),
         conversation_repository,
         session.id.to_string(),
         conversation,
     );
-    let mut processor = Processor::init(Box::new(agent), context);
+    let mut processor = Processor::init(agent, context);
 
     start_stdio(name, &session, &mut processor).await;
 }
@@ -67,11 +73,6 @@ async fn setup() -> (
         ),
     };
 
-    // @TODO: support select provider
-    if config.openai.api_key.is_empty() {
-        panic!("No API Key provided");
-    }
-
     let sqlite = Arc::new(
         SqliteDatabase::new(&Config::db_file())
             .await
@@ -89,4 +90,30 @@ async fn setup() -> (
     );
 
     (config, session_repository, conversation_repository)
+}
+
+#[derive(Debug, Clone)]
+enum Provider {
+    OPENAI,
+}
+
+impl<'s> From<&'s str> for Provider {
+    fn from(value: &'s str) -> Self {
+        match value {
+            "openai" => Provider::OPENAI,
+            _ => panic!("Invalid provider option!"),
+        }
+    }
+}
+
+fn provider_factory(provider: Provider, config: &Config) -> Box<dyn AiProvider> {
+    Box::new(match provider {
+        Provider::OPENAI => {
+            if config.openai.api_key.is_empty() {
+                panic!("No API Key provided");
+            }
+
+            OpenAI::new(config.openai.clone())
+        }
+    })
 }

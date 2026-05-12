@@ -9,6 +9,8 @@ use agente_domain::ports::ai_provider::{
 
 use crate::adapters::util::load_file_installed::load_file_installed;
 
+const DEFAULT_OPENAI_URL: &str = "https://api.openai.com/v1/responses";
+
 pub struct OpenAI {
     config: AiProviderConfig,
     client: reqwest::Client,
@@ -94,7 +96,7 @@ impl OpenAI {
     ) -> Result<serde_json::Value, AiProviderError> {
         let response = self
             .client
-            .post("https://api.openai.com/v1/responses")
+            .post(DEFAULT_OPENAI_URL)
             .header("Content-Type", "application/json")
             .header("Authorization", format!("Bearer {}", self.config.api_key))
             .json(&json)
