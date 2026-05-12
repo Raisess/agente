@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
+use tracing::info;
 
 use agente_domain::error::Error;
 use agente_domain::ports::ai_provider::{AiProvider, AskResponse};
@@ -160,16 +161,21 @@ impl Processor {
     }
 
     async fn refine_prompt(&self, input: String) -> Result<Vec<String>, Error> {
-        let pre_splitted_input =
-            input.split(",").map(|i| i.to_string()).collect::<Vec<_>>();
+        let pre_splitted_inputs =
+            vec![input.split(","), input.split("and"), input.split("then")];
+        let pre_splitted_input = pre_splitted_inputs.iter().find_map(|i| {
+            let n = i.clone().map(|o| o.trim().to_string()).collect::<Vec<_>>();
+            if n.len() > 1 { Some(n) } else { None }
+        });
 
-        if pre_splitted_input.len() > 1 {
+        info!(name: "pre_splitted_input", "{:#?}", pre_splitted_input);
+        if pre_splitted_input.is_some() {
             if input.len() <= 150 {
-                return Ok(pre_splitted_input);
+                return Ok(pre_splitted_input.unwrap());
             }
 
             Ok(self.split_prompt(input).await?)
-        } else if input.len() < 50 {
+        } else if input.len() < 20 {
             Ok(vec![input])
         } else if self.is_prompt_complex(input.clone()).await? {
             Ok(self.split_prompt(input).await?)
