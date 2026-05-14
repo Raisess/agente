@@ -59,5 +59,17 @@
       },
       "required": ["url"]
     }
+  },
+  {
+    "type": "function",
+    "name": "bash",
+    "description": "Execute bash commands in the host machine.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "command": {"type": "string", "description": "The command to be executed in plain bash"}
+      },
+      "required": ["command"]
+    }
   }
 ]
