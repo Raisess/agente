@@ -24,9 +24,11 @@ pub async fn start_stdio(
                 TaskResponse::MessageResponse(message) => {
                     draw_message(&_name, message);
                 }
-                TaskResponse::ToolSignature(command) => draw_command_signature(command),
-                TaskResponse::ToolResponse((command, response, arguments)) => {
-                    draw_command_response(command, response, arguments)
+                TaskResponse::ToolSignature((command, arguments)) => {
+                    draw_command_signature(command, arguments)
+                }
+                TaskResponse::ToolResponse((command, arguments, response)) => {
+                    draw_command_response(command, arguments, response)
                 }
                 TaskResponse::Error(error) => draw_error(error),
             };
@@ -63,8 +65,8 @@ const MAX_COMMAND_OUTPUT_SIZE: usize = 500;
 
 fn draw_command_response(
     command: String,
-    response: String,
     arguments: HashMap<String, String>,
+    response: String,
 ) {
     let parsed_args = arguments
         .iter()
@@ -97,9 +99,15 @@ fn draw_command_response(
     }
 }
 
-fn draw_command_signature(command: String) {
+fn draw_command_signature(command: String, arguments: HashMap<String, String>) {
+    let parsed_args = arguments
+        .iter()
+        .map(|(key, value)| format!("{key}: {value}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+
     println!(
-        "{}{}< Running({}{command}{}{}){}",
+        "{}{}< Running({}{command}({parsed_args}){}{}){}",
         Ansi::BOLD,
         Ansi::FG_BLUE,
         Ansi::RESET,
