@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
-use tracing::info;
 
 use agente_domain::error::Error;
 use agente_domain::ports::ai_provider::{AiProvider, AskResponse};
@@ -67,6 +66,9 @@ impl Processor {
             }
             _ => {
                 let tasks = self.refine_prompt(prompt).await?;
+                if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
+                    println!("TASKS: {:#?}", tasks);
+                }
 
                 for task in tasks {
                     match self.recursively_process_prompt(task, None).await {
@@ -164,21 +166,7 @@ impl Processor {
     }
 
     async fn refine_prompt(&self, input: String) -> Result<Vec<String>, Error> {
-        let pre_splitted_inputs =
-            vec![input.split(","), input.split("and"), input.split("then")];
-        let pre_splitted_input = pre_splitted_inputs.iter().find_map(|i| {
-            let n = i.clone().map(|o| o.trim().to_string()).collect::<Vec<_>>();
-            if n.len() > 1 { Some(n) } else { None }
-        });
-
-        info!(name: "pre_splitted_input", "{:#?}", pre_splitted_input);
-        if pre_splitted_input.is_some() {
-            if input.len() <= 150 {
-                return Ok(pre_splitted_input.unwrap());
-            }
-
-            Ok(self.split_prompt(input).await?)
-        } else if input.len() < 20 {
+        if input.len() < 20 {
             Ok(vec![input])
         } else if self.is_prompt_complex(input.clone()).await? {
             Ok(self.split_prompt(input).await?)
@@ -197,6 +185,10 @@ impl Processor {
             .agent
             .plain_ask(is_prompt_complex_prompt(), input)
             .await?;
+        if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
+            println!("IS_COMPLEX: {result}");
+        }
+
         Ok(result == "true")
     }
 
