@@ -1,4 +1,5 @@
 pub mod context;
+pub mod execution_plan;
 pub mod processor;
 
 use std::str::FromStr;

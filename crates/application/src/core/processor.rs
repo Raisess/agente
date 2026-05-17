@@ -8,10 +8,10 @@ use agente_domain::error::Error;
 use agente_domain::ports::ai_provider::{AiProvider, AskResponse};
 use agente_domain::ports::io::{Executor, ExecutorArgument};
 use agente_infrastructure::adapters::util::cmd::CMD;
-use agente_infrastructure::adapters::util::load_file_installed::load_file_installed;
 use agente_infrastructure::config::Config;
 
 use crate::core::context::Context;
+use crate::core::execution_plan::ExecutionPlan;
 
 // @TODO: link a message id, will be useful for websocket server to know message
 // and tool contexts
@@ -65,14 +65,16 @@ impl Processor {
                     .await?;
             }
             _ => {
-                let plan = self.refine_prompt(prompt).await?;
-                if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
-                    println!("LEN: {}. PLAN: {:#?}", plan.len(), plan);
-                }
+                let plan = ExecutionPlan::generate(&self.agent, prompt).await?;
 
-                // @TODO: plan execution results should be analyzed to dertermine when the execution is not
-                for task in plan {
-                    match self.recursively_process_prompt(task, None).await {
+                // @NOTE: the next todos only apply for complex plans
+                // @TODO: plan execution results should be analyzed to dertermine when the
+                // execution is not
+                // @TODO: gen a execution summary at the of the plan and determine if its
+                // done based on the first prompt passed, if dont, generate what is
+                // missing and process it
+                for step in plan.steps {
+                    match self.recursively_process_prompt(step, None).await {
                         Ok(_) => {}
                         Err(error) => {
                             self.__sender.send(TaskResponse::Error(error)).await?;
@@ -166,34 +168,6 @@ impl Processor {
         Ok(response)
     }
 
-    async fn refine_prompt(&self, input: String) -> Result<Vec<String>, Error> {
-        if input.len() < 20 {
-            Ok(vec![input])
-        } else if self.is_prompt_complex(input.clone()).await? {
-            // @TODO: should we reasoning this prompt??
-            Ok(self.split_prompt(input).await?)
-        } else {
-            Ok(vec![input])
-        }
-    }
-
-    async fn split_prompt(&self, input: String) -> Result<Vec<String>, Error> {
-        let result = self.agent.plain_ask(task_splitter_prompt(), input).await?;
-        Ok(result.split(";").map(|i| i.trim().to_string()).collect())
-    }
-
-    async fn is_prompt_complex(&self, input: String) -> Result<bool, Error> {
-        let result = self
-            .agent
-            .plain_ask(is_prompt_complex_prompt(), input)
-            .await?;
-        if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
-            println!("IS_COMPLEX: {result}");
-        }
-
-        Ok(result == "true")
-    }
-
     fn execute_tool(
         &self,
         tool: &String,
@@ -230,12 +204,4 @@ impl Processor {
                 .join(", ")
         )
     }
-}
-
-fn task_splitter_prompt() -> String {
-    load_file_installed("prompts/task_splitter.md", vec![])
-}
-
-fn is_prompt_complex_prompt() -> String {
-    load_file_installed("prompts/is_prompt_complex.md", vec![])
 }
