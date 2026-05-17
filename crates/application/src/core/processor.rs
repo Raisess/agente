@@ -65,12 +65,13 @@ impl Processor {
                     .await?;
             }
             _ => {
-                let tasks = self.refine_prompt(prompt).await?;
+                let plan = self.refine_prompt(prompt).await?;
                 if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
-                    println!("TASKS: {:#?}", tasks);
+                    println!("LEN: {}. PLAN: {:#?}", plan.len(), plan);
                 }
 
-                for task in tasks {
+                // @TODO: plan execution results should be analyzed to dertermine when the execution is not
+                for task in plan {
                     match self.recursively_process_prompt(task, None).await {
                         Ok(_) => {}
                         Err(error) => {
@@ -169,6 +170,7 @@ impl Processor {
         if input.len() < 20 {
             Ok(vec![input])
         } else if self.is_prompt_complex(input.clone()).await? {
+            // @TODO: should we reasoning this prompt??
             Ok(self.split_prompt(input).await?)
         } else {
             Ok(vec![input])

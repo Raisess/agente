@@ -14,13 +14,15 @@ const DEFAULT_OPENAI_URL: &str = "https://api.openai.com/v1/responses";
 pub struct OpenAI {
     config: AiProviderConfig,
     client: reqwest::Client,
+    url: String,
 }
 
 impl OpenAI {
-    pub fn new(config: AiProviderConfig) -> Self {
+    pub fn new(config: AiProviderConfig, url: Option<&str>) -> Self {
         Self {
             config,
             client: reqwest::Client::new(),
+            url: url.unwrap_or(DEFAULT_OPENAI_URL).to_string(),
         }
     }
 
@@ -96,7 +98,7 @@ impl OpenAI {
     ) -> Result<serde_json::Value, AiProviderError> {
         let response = self
             .client
-            .post(DEFAULT_OPENAI_URL)
+            .post(&self.url)
             .header("Content-Type", "application/json")
             .header("Authorization", format!("Bearer {}", self.config.api_key))
             .json(&json)

@@ -11,7 +11,7 @@ use agente_application::core::processor::Processor;
 use agente_application::core::{get_conversation, init_session};
 use agente_application::repositories::conversation::ConversationRepository;
 use agente_application::repositories::session::SessionRepository;
-use agente_domain::ports::ai_provider::AiProvider;
+use agente_domain::ports::ai_provider::{AiProvider, AiProviderConfig};
 use agente_infrastructure::adapters::database::sqlite::SqliteDatabase;
 use agente_infrastructure::adapters::providers::openai::OpenAI;
 use agente_infrastructure::adapters::util::file_system::FileSystem;
@@ -64,6 +64,7 @@ async fn setup() -> (
     Arc<SessionRepository>,
     Arc<ConversationRepository>,
 ) {
+    // @FIXME: instead of recreating the entire config file, just append new keys.
     let fs = Arc::new(FileSystem::default());
     let config = match Config::load(fs.clone(), None) {
         Ok(c) => c,
@@ -95,25 +96,44 @@ async fn setup() -> (
 #[derive(Debug, Clone)]
 enum Provider {
     OPENAI,
+    GROQ,
 }
 
 impl<'s> From<&'s str> for Provider {
     fn from(value: &'s str) -> Self {
         match value {
             "openai" => Provider::OPENAI,
+            "groq" => Provider::GROQ,
             _ => panic!("Invalid provider option!"),
         }
     }
 }
 
 fn provider_factory(provider: Provider, config: &Config) -> Box<dyn AiProvider> {
-    Box::new(match provider {
-        Provider::OPENAI => {
-            if config.openai.api_key.is_empty() {
-                panic!("No API Key provided");
-            }
-
-            OpenAI::new(config.openai.clone())
+    fn init_provider<F>(
+        label: &str,
+        config: Option<AiProviderConfig>,
+        f: F,
+    ) -> Box<dyn AiProvider>
+    where
+        F: Fn(AiProviderConfig) -> Box<dyn AiProvider>,
+    {
+        if config.is_none() {
+            panic!("No {label} API config provided");
         }
-    })
+
+        f(config.unwrap())
+    }
+
+    match provider {
+        Provider::OPENAI => init_provider("Open AI", config.openai.clone(), |c| {
+            Box::new(OpenAI::new(c, None))
+        }),
+        Provider::GROQ => init_provider("Groq", config.groq.clone(), |c| {
+            Box::new(OpenAI::new(
+                c,
+                Some("https://api.groq.com/openai/v1/chat/completions"),
+            ))
+        }),
+    }
 }

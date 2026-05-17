@@ -12,7 +12,9 @@ pub struct Config {
     /// Agente alias name
     pub name: Option<String>,
     /// OpenAI config
-    pub openai: AiProviderConfig,
+    pub openai: Option<AiProviderConfig>,
+    /// Groq config
+    pub groq: Option<AiProviderConfig>,
 }
 
 impl Config {
