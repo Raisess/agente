@@ -5,7 +5,6 @@ use agente_infrastructure::adapters::util::load_file_installed::load_file_instal
 #[derive(Debug)]
 pub struct ExecutionPlan {
     pub is_complex: bool,
-    pub is_done: bool,
     pub size: usize,
     pub steps: Vec<Step>,
 }
@@ -33,7 +32,6 @@ impl ExecutionPlan {
 
         let plan = Self {
             is_complex,
-            is_done: false,
             size: steps.len(),
             steps,
         };
@@ -42,6 +40,47 @@ impl ExecutionPlan {
         }
 
         Ok(plan)
+    }
+
+    pub async fn is_done(
+        &self,
+        agent: &Box<dyn AiProvider>,
+    ) -> Result<(bool, String), Error> {
+        if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
+            println!("FINISHED PLAN: {:#?}", self.steps);
+        }
+
+        let results = self
+            .steps
+            .iter()
+            .map(|step| {
+                format!(
+                    "Message: {}, Result: {}",
+                    step.prompt,
+                    step.result.clone().unwrap_or("Not finished".to_string())
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let execution_summary_system_prompt =
+            "Based on the the next messages, determine if the goal as reached and if dont, describe what is needed to finish it, but never add anything that we didn't asked in the inital goal unless its really needed to finish it"
+                .to_string();
+        let execution_summary = agent
+            .plain_ask(execution_summary_system_prompt, results.join(" |"))
+            .await?;
+        if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
+            println!("EXECUTION_SUMMARY: {execution_summary}");
+        }
+
+        let is_done_system_prompt = "Based on the next message, is our goal reached? return true if reached and false otherwise".to_string();
+        let is_done = agent
+            .plain_ask(is_done_system_prompt, execution_summary.clone())
+            .await?;
+        if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
+            println!("IS_DONE? {is_done}");
+        }
+
+        Ok((is_done.to_lowercase() == "true", execution_summary))
     }
 
     async fn split_prompt(
@@ -57,10 +96,6 @@ impl ExecutionPlan {
         input: String,
     ) -> Result<bool, Error> {
         let result = agent.plain_ask(is_prompt_complex_prompt(), input).await?;
-        if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
-            println!("IS_COMPLEX: {result}");
-        }
-
         Ok(result == "true")
     }
 }

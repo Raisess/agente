@@ -11,7 +11,7 @@ use agente_infrastructure::adapters::util::cmd::CMD;
 use agente_infrastructure::config::Config;
 
 use crate::core::context::Context;
-use crate::core::execution_plan::ExecutionPlan;
+use crate::core::execution_plan::{ExecutionPlan, Step};
 
 // @TODO: link a message id, will be useful for websocket server to know message
 // and tool contexts
@@ -73,7 +73,7 @@ impl Processor {
 
     #[async_recursion::async_recursion]
     async fn mloop(&mut self, prompt: String) -> Result<(), Error> {
-        let plan = ExecutionPlan::generate(&self.agent, prompt).await?;
+        let mut plan = ExecutionPlan::generate(&self.agent, prompt).await?;
 
         // @NOTE: the next todos only apply for complex plans
         // @TODO: plan execution results should be analyzed to dertermine when the
@@ -84,17 +84,18 @@ impl Processor {
         // @TODO: when loop finishs generate the execution summary check if the plan is
         // done, if dont, run process again with a new sintetic prompt to finish the
         // initial task
-        for mut step in plan.steps {
-            match self.recursively_process_prompt(step.prompt(), None).await {
-                Ok(_) => {
-                    // @TODO: store each step result and use it to determine if task is
-                    // done
-                    step.finish("TODO".to_string());
-                }
+        for step in &mut plan.steps {
+            match self.recursively_process_prompt(&mut *step, None).await {
+                Ok(_) => {}
                 Err(error) => {
                     self.__sender.send(TaskResponse::Error(error)).await?;
                 }
             }
+        }
+
+        let (is_done, final_result) = plan.is_done(&self.agent).await?;
+        if !is_done {
+            self.mloop(final_result).await?;
         }
 
         Ok(())
@@ -103,9 +104,10 @@ impl Processor {
     #[async_recursion::async_recursion]
     async fn recursively_process_prompt(
         &mut self,
-        prompt: String,
+        step: &mut Step,
         last_executed_tool_hash: Option<String>,
     ) -> Result<(), Error> {
+        let prompt = step.prompt();
         if prompt.is_empty() {
             return Ok(());
         }
@@ -115,8 +117,9 @@ impl Processor {
         match response {
             AskResponse::Content(text) => {
                 self.__sender
-                    .send(TaskResponse::MessageResponse(text))
+                    .send(TaskResponse::MessageResponse(text.clone()))
                     .await?;
+                step.finish(text);
             }
             AskResponse::ToolCall(tools) => {
                 for (tool, arguments) in tools {
@@ -146,10 +149,13 @@ impl Processor {
                                     tool_response.output.clone(),
                                 )))
                                 .await?;
+                            step.finish(tool_response.output.clone());
 
                             if tool_response.refeed {
+                                let mut tool_response_step =
+                                    Step::new(tool_response.output);
                                 self.recursively_process_prompt(
-                                    tool_response.output,
+                                    &mut tool_response_step,
                                     Some(hash),
                                 )
                                 .await?;
@@ -162,8 +168,12 @@ impl Processor {
                                 "Failed to process prompt: {prompt}, use another tool \
                                  to find context and then retry it"
                             );
-                            self.recursively_process_prompt(failed_prompt, Some(hash))
-                                .await?;
+                            let mut failed_prompt_step = Step::new(failed_prompt);
+                            self.recursively_process_prompt(
+                                &mut failed_prompt_step,
+                                Some(hash),
+                            )
+                            .await?;
                         }
                     };
                 }
