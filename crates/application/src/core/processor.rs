@@ -64,27 +64,39 @@ impl Processor {
                     ))
                     .await?;
             }
-            _ => {
-                let plan = ExecutionPlan::generate(&self.agent, prompt).await?;
+            _ => self.mloop(prompt).await?,
+        }
 
-                // @NOTE: the next todos only apply for complex plans
-                // @TODO: plan execution results should be analyzed to dertermine when the
-                // execution is not
-                // @TODO: gen a execution summary at the of the plan and determine if its
-                // done based on the first prompt passed, if dont, generate what is
-                // missing and process it
-                for step in plan.steps {
-                    match self.recursively_process_prompt(step, None).await {
-                        Ok(_) => {}
-                        Err(error) => {
-                            self.__sender.send(TaskResponse::Error(error)).await?;
-                        }
-                    }
+        self.__sender.send(TaskResponse::Done).await?;
+        Ok(())
+    }
+
+    #[async_recursion::async_recursion]
+    async fn mloop(&mut self, prompt: String) -> Result<(), Error> {
+        let plan = ExecutionPlan::generate(&self.agent, prompt).await?;
+
+        // @NOTE: the next todos only apply for complex plans
+        // @TODO: plan execution results should be analyzed to dertermine when the
+        // execution is not
+        // @TODO: gen a execution summary at the of the plan and determine if its
+        // done based on the first prompt passed, if dont, generate what is
+        // missing and process it
+        // @TODO: when loop finishs generate the execution summary check if the plan is
+        // done, if dont, run process again with a new sintetic prompt to finish the
+        // initial task
+        for mut step in plan.steps {
+            match self.recursively_process_prompt(step.prompt(), None).await {
+                Ok(_) => {
+                    // @TODO: store each step result and use it to determine if task is
+                    // done
+                    step.finish("TODO".to_string());
+                }
+                Err(error) => {
+                    self.__sender.send(TaskResponse::Error(error)).await?;
                 }
             }
         }
 
-        self.__sender.send(TaskResponse::Done).await?;
         Ok(())
     }
 

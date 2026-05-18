@@ -7,7 +7,7 @@ pub struct ExecutionPlan {
     pub is_complex: bool,
     pub is_done: bool,
     pub size: usize,
-    pub steps: Vec<String>,
+    pub steps: Vec<Step>,
 }
 
 impl ExecutionPlan {
@@ -15,13 +15,20 @@ impl ExecutionPlan {
         agent: &Box<dyn AiProvider>,
         input: String,
     ) -> Result<Self, Error> {
+        let default_steps = vec![Step {
+            prompt: input.clone(),
+            result: None,
+        }];
+
         let (steps, is_complex) = if input.len() < 20 {
-            (vec![input], false)
+            (default_steps, false)
         } else if Self::is_prompt_complex(agent, input.clone()).await? {
             // @TODO: should we reasoning this prompt??
-            (Self::split_prompt(agent, input).await?, true)
+            let results = Self::split_prompt(agent, input).await?;
+            let steps = results.iter().map(|r| Step::new(r.to_string())).collect();
+            (steps, true)
         } else {
-            (vec![input], false)
+            (default_steps, false)
         };
 
         let plan = Self {
@@ -55,6 +62,31 @@ impl ExecutionPlan {
         }
 
         Ok(result == "true")
+    }
+}
+
+#[derive(Debug)]
+pub struct Step {
+    prompt: String,
+    result: Option<String>,
+}
+
+impl Step {
+    pub fn new(prompt: String) -> Self {
+        Self {
+            prompt,
+            result: None,
+        }
+    }
+
+    #[inline]
+    pub fn prompt(&self) -> String {
+        self.prompt.clone()
+    }
+
+    #[inline]
+    pub fn finish(&mut self, result: String) -> () {
+        self.result = Some(result);
     }
 }
 
