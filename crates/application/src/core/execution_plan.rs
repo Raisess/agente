@@ -1,5 +1,5 @@
 use agente_domain::error::Error;
-use agente_domain::ports::ai_provider::AiProvider;
+use agente_domain::ports::ai_provider::{AiProvider, MessageRequest, MessageRole};
 use agente_infrastructure::adapters::util::load_file_installed::load_file_installed;
 
 #[derive(Debug)]
@@ -62,20 +62,39 @@ impl ExecutionPlan {
             })
             .collect::<Vec<_>>();
 
+        // @TODO: need to consider last execution plan execution summary
         let execution_summary_system_prompt =
             "Based on the the next messages, determine if the goal as reached and if dont, describe what is needed to finish it, but never add anything that we didn't asked in the inital goal unless its really needed to finish it"
                 .to_string();
-        let execution_summary = agent
-            .plain_ask(execution_summary_system_prompt, results.join(" |"))
-            .await?;
+        let messages = vec![
+            MessageRequest {
+                role: MessageRole::System,
+                content: execution_summary_system_prompt,
+            },
+            MessageRequest {
+                role: MessageRole::User,
+                content: results.join(";"),
+            },
+        ];
+
+        let execution_summary = agent.plain_ask(messages).await?;
         if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
             println!("EXECUTION_SUMMARY: {execution_summary}");
         }
 
         let is_done_system_prompt = "Based on the next message, is our goal reached? return true if reached and false otherwise".to_string();
-        let is_done = agent
-            .plain_ask(is_done_system_prompt, execution_summary.clone())
-            .await?;
+        let messages = vec![
+            MessageRequest {
+                role: MessageRole::System,
+                content: is_done_system_prompt,
+            },
+            MessageRequest {
+                role: MessageRole::User,
+                content: execution_summary.clone(),
+            },
+        ];
+
+        let is_done = agent.plain_ask(messages).await?;
         if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
             println!("IS_DONE? {is_done}");
         }
@@ -87,7 +106,18 @@ impl ExecutionPlan {
         agent: &Box<dyn AiProvider>,
         input: String,
     ) -> Result<Vec<String>, Error> {
-        let result = agent.plain_ask(task_splitter_prompt(), input).await?;
+        let messages = vec![
+            MessageRequest {
+                role: MessageRole::System,
+                content: task_splitter_prompt(),
+            },
+            MessageRequest {
+                role: MessageRole::User,
+                content: input,
+            },
+        ];
+
+        let result = agent.plain_ask(messages).await?;
         Ok(result.split(";").map(|i| i.trim().to_string()).collect())
     }
 
@@ -95,7 +125,18 @@ impl ExecutionPlan {
         agent: &Box<dyn AiProvider>,
         input: String,
     ) -> Result<bool, Error> {
-        let result = agent.plain_ask(is_prompt_complex_prompt(), input).await?;
+        let messages = vec![
+            MessageRequest {
+                role: MessageRole::System,
+                content: is_prompt_complex_prompt(),
+            },
+            MessageRequest {
+                role: MessageRole::User,
+                content: input,
+            },
+        ];
+
+        let result = agent.plain_ask(messages).await?;
         Ok(result == "true")
     }
 }

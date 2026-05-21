@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use agente_domain::ports::ai_provider::{
     AiProvider, AiProviderConfig, AiProviderError, AskResponse, MessageRequest,
-    MessageRole,
 };
 
 use crate::adapters::util::load_file_installed::load_file_installed;
@@ -163,25 +162,13 @@ impl AiProvider for OpenAI {
 
     async fn plain_ask(
         &self,
-        system: String,
-        content: String,
+        messages: Vec<MessageRequest>,
     ) -> Result<String, AiProviderError> {
         let model = self
             .config
             .cheap_model
             .clone()
             .unwrap_or(self.config.model.clone());
-
-        let messages = vec![
-            MessageRequest {
-                role: MessageRole::System,
-                content: system,
-            },
-            MessageRequest {
-                role: MessageRole::User,
-                content,
-            },
-        ];
 
         self.handle_plain_message(&model, messages).await
     }

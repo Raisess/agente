@@ -25,8 +25,7 @@ pub trait AiProvider: Send + Sync {
     /// @NOTE: may use a cheap model
     async fn plain_ask(
         &self,
-        system: String,
-        content: String,
+        messages: Vec<MessageRequest>,
     ) -> Result<String, AiProviderError>;
 }
 
