@@ -15,20 +15,20 @@ impl ExecutionPlan {
         agent: &Box<dyn AiProvider>,
         input: String,
     ) -> Result<Self, Error> {
-        let default_steps = vec![Step {
-            prompt: input.clone(),
-            result: None,
-        }];
-
-        let (steps, is_complex) = if input.len() < 20 {
-            (default_steps, false)
-        } else if Self::is_prompt_complex(agent, input.clone()).await? {
+        let (steps, is_complex) = if Self::is_prompt_complex(agent, input.clone()).await?
+        {
             // @TODO: should we reasoning this prompt??
             let results = Self::split_prompt(agent, input).await?;
             let steps = results.iter().map(|r| Step::new(r.to_string())).collect();
             (steps, true)
         } else {
-            (default_steps, false)
+            (
+                vec![Step {
+                    prompt: input.clone(),
+                    result: None,
+                }],
+                false,
+            )
         };
 
         let plan = Self {
