@@ -4,9 +4,10 @@ use agente_infrastructure::adapters::util::load_file_installed::load_file_instal
 
 #[derive(Debug)]
 pub struct ExecutionPlan {
-    pub is_complex: bool,
-    pub size: usize,
     pub steps: Vec<Step>,
+    pub size: usize,
+    pub is_complex: bool,
+    last_execution_summary: Option<String>,
 }
 
 impl ExecutionPlan {
@@ -31,9 +32,10 @@ impl ExecutionPlan {
         };
 
         let plan = Self {
-            is_complex,
             size: steps.len(),
             steps,
+            is_complex,
+            last_execution_summary: None,
         };
         if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
             println!("PLAN: {:#?}", plan);
@@ -43,50 +45,55 @@ impl ExecutionPlan {
     }
 
     pub async fn is_done(
-        &self,
+        &mut self,
         agent: &Box<dyn AiProvider>,
     ) -> Result<(bool, String), Error> {
         if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
             println!("FINISHED PLAN: {:#?}", self.steps);
         }
 
-        let results = self
+        let executed_plan_summary = self
             .steps
             .iter()
             .map(|step| {
                 format!(
-                    "Message: {}, Result: {}",
+                    "> {}: {}",
                     step.prompt,
                     step.result.clone().unwrap_or("Not finished".to_string())
                 )
             })
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+            .join(", ");
 
-        // @TODO: need to consider last execution plan execution summary
-        let execution_summary_system_prompt =
-            "Based on the the next messages, determine if the goal as reached and if dont, describe what is needed to finish it, but never add anything that we didn't asked in the inital goal unless its really needed to finish it"
-                .to_string();
-        let messages = vec![
-            MessageRequest {
-                role: MessageRole::System,
-                content: execution_summary_system_prompt,
-            },
-            MessageRequest {
+        let mut messages = vec![MessageRequest {
+            role: MessageRole::System,
+            content: generate_execution_summary(),
+        }];
+
+        if self.last_execution_summary.is_some() {
+            let summary = self.last_execution_summary.clone().unwrap();
+            let content = format!("This is the last execution summary: {summary}");
+            messages.push(MessageRequest {
                 role: MessageRole::User,
-                content: results.join(";"),
-            },
-        ];
+                content,
+            });
+        }
+
+        messages.push(MessageRequest {
+            role: MessageRole::User,
+            content: executed_plan_summary,
+        });
 
         let execution_summary = agent.plain_ask(messages).await?;
+        self.last_execution_summary = Some(execution_summary.clone());
         if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
             println!("EXECUTION_SUMMARY: {execution_summary}");
         }
 
-        let is_done_system_prompt = "Based on the next message, is our goal reached? return true if reached and false otherwise".to_string();
         let messages = vec![
             MessageRequest {
                 role: MessageRole::System,
-                content: is_done_system_prompt,
+                content: confirm_execution_plan_is_done(),
             },
             MessageRequest {
                 role: MessageRole::User,
@@ -166,10 +173,24 @@ impl Step {
     }
 }
 
+fn confirm_execution_plan_is_done() -> String {
+    load_file_installed(
+        "prompts/execution_plan/confirm_execution_plan_is_done.md",
+        vec![],
+    )
+}
+
+fn generate_execution_summary() -> String {
+    load_file_installed(
+        "prompts/execution_plan/generate_execution_summary.md",
+        vec![],
+    )
+}
+
 fn task_splitter_prompt() -> String {
-    load_file_installed("prompts/task_splitter.md", vec![])
+    load_file_installed("prompts/execution_plan/task_splitter.md", vec![])
 }
 
 fn is_prompt_complex_prompt() -> String {
-    load_file_installed("prompts/is_prompt_complex.md", vec![])
+    load_file_installed("prompts/execution_plan/is_prompt_complex.md", vec![])
 }

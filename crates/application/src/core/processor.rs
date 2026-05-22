@@ -74,16 +74,6 @@ impl Processor {
     #[async_recursion::async_recursion]
     async fn mloop(&mut self, prompt: String) -> Result<(), Error> {
         let mut plan = ExecutionPlan::generate(&self.agent, prompt).await?;
-
-        // @NOTE: the next todos only apply for complex plans
-        // @TODO: plan execution results should be analyzed to dertermine when the
-        // execution is not
-        // @TODO: gen a execution summary at the of the plan and determine if its
-        // done based on the first prompt passed, if dont, generate what is
-        // missing and process it
-        // @TODO: when loop finishs generate the execution summary check if the plan is
-        // done, if dont, run process again with a new sintetic prompt to finish the
-        // initial task
         for step in &mut plan.steps {
             match self.recursively_process_prompt(&mut *step, None).await {
                 Ok(_) => {}

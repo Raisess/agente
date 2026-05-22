@@ -1,0 +1,1 @@
+Based on the the next messages, determine if the objective was reached and if dont, describe (in the prompt language) what is needed to finish it in the simpliest way possible, but never add anything that we didn't asked in the inital goal unless its really needed to complete the task.
