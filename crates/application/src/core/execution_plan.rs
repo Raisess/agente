@@ -52,6 +52,10 @@ impl ExecutionPlan {
             println!("FINISHED PLAN: {:#?}", self.steps);
         }
 
+        if !self.is_complex {
+            return Ok((true, String::new()));
+        }
+
         let executed_plan_summary = self
             .steps
             .iter()
