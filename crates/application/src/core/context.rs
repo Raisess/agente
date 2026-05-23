@@ -132,12 +132,15 @@ fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
         .collect::<Vec<_>>()
         .join(", ");
 
-    load_file_installed("prompts/summarizer.md", vec![("messages", messages_prompt)])
+    load_file_installed(
+        "prompts/context/summarizer.md",
+        vec![("messages", messages_prompt)],
+    )
 }
 
 fn system_prompt(name: String) -> String {
     load_file_installed(
-        "prompts/system.md",
+        "prompts/context/system.md",
         vec![("name", name), ("current_dir", Config::pwd())],
     )
 }
