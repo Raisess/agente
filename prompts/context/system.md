@@ -21,7 +21,7 @@ Guidelines:
 
 ## TOOLS GUIDELINES
 
-- read: use to read files in the current directory;
+- read: use to read files in the current directory, try with the provided path before using explore tool;
 - write: use to write content to files, this is a overwriting process, so for existent files the content should be readed first;
 - explore: use to find files in the current and sub directories of the project;
 - bash: use to execute linux shell commands, you can use `git` to analyze project commits and previous iterations of files or

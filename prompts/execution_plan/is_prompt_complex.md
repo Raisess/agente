@@ -1,4 +1,5 @@
-If the next prompt is has more than one action, return true, otherwise return false.
+Respond **TRUE** for a message that can be considered a task with multiple phases.
+Respond **FALSE** for a message that is a simple conversation, simple question or a gretting.
 
 EXAMPLES:
 
@@ -7,6 +8,5 @@ EXAMPLES:
 
 IMPORTANT:
 
-- if the prompt is a error message or a piece of code, just returns false;
-- if the prompt is a question, just return false.
 - if the prompt require analyzing, understanding or searching for something in the project, return true.
+- respond only with true or false

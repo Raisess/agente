@@ -17,7 +17,6 @@ impl ExecutionPlan {
     ) -> Result<Self, Error> {
         let (steps, is_complex) = if Self::is_prompt_complex(agent, input.clone()).await?
         {
-            // @TODO: should we reasoning this prompt??
             let results = Self::split_prompt(agent, input).await?;
             let steps = results.iter().map(|r| Step::new(r.to_string())).collect();
             (steps, true)
@@ -52,9 +51,9 @@ impl ExecutionPlan {
             println!("FINISHED PLAN: {:#?}", self.steps);
         }
 
-        if !self.is_complex {
-            return Ok((true, String::new()));
-        }
+        // if !self.is_complex {
+        // return Ok((true, String::new()));
+        // }
 
         let executed_plan_summary = self
             .steps
@@ -85,7 +84,7 @@ impl ExecutionPlan {
 
         messages.push(MessageRequest {
             role: MessageRole::User,
-            content: executed_plan_summary,
+            content: executed_plan_summary.clone(),
         });
 
         let execution_summary = agent.plain_ask(messages).await?;
@@ -101,7 +100,11 @@ impl ExecutionPlan {
             },
             MessageRequest {
                 role: MessageRole::User,
-                content: execution_summary.clone(),
+                content: format!("What is executed: {executed_plan_summary}"),
+            },
+            MessageRequest {
+                role: MessageRole::User,
+                content: format!("Results: {execution_summary}"),
             },
         ];
 
@@ -110,7 +113,7 @@ impl ExecutionPlan {
             println!("IS_DONE? {is_done}");
         }
 
-        Ok((is_done.to_lowercase() == "true", execution_summary))
+        Ok((is_done.to_lowercase().contains("true"), execution_summary))
     }
 
     async fn split_prompt(
