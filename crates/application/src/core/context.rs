@@ -52,42 +52,49 @@ impl Context {
         prompt: String,
     ) -> Result<AskResponse, AiProviderError> {
         info!("asking...");
-        append_to_conversation(
-            self.conversation_repository.clone(),
-            self.session_id.clone(),
-            MessageRole::User,
-            prompt.clone(),
-        )
-        .await
-        .expect("Failed to append message to conversation");
-
         self.messages.push(MessageRequest {
             role: MessageRole::User,
-            content: prompt,
+            content: prompt.clone(),
         });
 
         info!(name: "history", "{:#?}", self.messages);
-        let ask_response = agent.ask(self.messages.clone()).await?;
-        self.messages.push(MessageRequest {
-            role: MessageRole::Assistant,
-            content: match ask_response {
-                AskResponse::Content(ref text) => text.clone(),
-                AskResponse::ToolCall(ref tools) => {
-                    // @FIXME: this should consider tool arguments
-                    format!(
-                        "Executed tools: {}",
-                        tools
-                            .iter()
-                            .map(|(tool, _)| tool.clone())
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    )
-                }
-            },
-        });
-        info!("done!");
+        match agent.ask(self.messages.clone()).await {
+            Ok(ask_response) => {
+                self.messages.push(MessageRequest {
+                    role: MessageRole::Assistant,
+                    content: match ask_response {
+                        AskResponse::Content(ref text) => text.clone(),
+                        AskResponse::ToolCall(ref tools) => {
+                            // @FIXME: this should consider tool arguments
+                            format!(
+                                "Executed tools: {}",
+                                tools
+                                    .iter()
+                                    .map(|(tool, _)| tool.clone())
+                                    .collect::<Vec<_>>()
+                                    .join(", ")
+                            )
+                        }
+                    },
+                });
+                info!("done!");
 
-        Ok(ask_response)
+                append_to_conversation(
+                    self.conversation_repository.clone(),
+                    self.session_id.clone(),
+                    MessageRole::User,
+                    prompt,
+                )
+                .await
+                .expect("Failed to append message to conversation");
+
+                Ok(ask_response)
+            }
+            Err(error) => {
+                self.messages.pop();
+                Err(error)
+            }
+        }
     }
 
     // @TODO: should save summarized conversations into the db and fetch it
