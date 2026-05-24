@@ -85,8 +85,11 @@ fn draw_command_response(
             Ansi::RESET
         );
     } else {
-        let mut cropped_response = response.clone();
-        cropped_response.truncate(MAX_COMMAND_OUTPUT_SIZE);
+        fn truncate_chars(s: &str, max_chars: usize) -> String {
+            s.chars().take(max_chars).collect()
+        }
+
+        let cropped_response = truncate_chars(&response, MAX_COMMAND_OUTPUT_SIZE);
         println!(
             "{}{}< Resolved({}{command}({parsed_args}){}{}){}: {cropped_response}...",
             Ansi::BOLD,
