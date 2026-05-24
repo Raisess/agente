@@ -13,6 +13,8 @@ use agente_infrastructure::config::Config;
 use crate::core::context::Context;
 use crate::core::execution_plan::{ExecutionPlan, Step};
 
+static MAX_ERROR_RETRIES: usize = 3;
+
 // @TODO: link a message id, will be useful for websocket server to know message
 // and tool contexts
 pub enum TaskResponse {
@@ -72,14 +74,25 @@ impl Processor {
     }
 
     #[async_recursion::async_recursion]
-    async fn mloop(&mut self, prompt: String, mut max_retries: usize) -> Result<(), Error> {
-        let mut plan = ExecutionPlan::generate(&self.agent, prompt.clone(), ).await?;
+    async fn mloop(
+        &mut self,
+        prompt: String,
+        mut max_retries: usize,
+    ) -> Result<(), Error> {
+        let mut plan = ExecutionPlan::generate(&self.agent, prompt.clone()).await?;
         for step in &mut plan.steps {
-            match self.recursively_process_prompt(&mut *step, false, None).await {
+            match self
+                .recursively_process_prompt(&mut *step, false, None)
+                .await
+            {
                 Ok(_) => {}
                 Err(error) => {
-                    self.__sender.send(TaskResponse::Error(error)).await?;
                     max_retries += 1;
+                    if max_retries >= MAX_ERROR_RETRIES {
+                        return Err(error);
+                    }
+
+                    self.__sender.send(TaskResponse::Error(error)).await?;
                     let failed_prompt = format!(
                         "Failed to process prompt: {prompt}, use another tool \
                                  to find context and then retry it"
@@ -167,7 +180,11 @@ impl Processor {
         Ok(())
     }
 
-    async fn process_prompt(&mut self, input: String, is_refeed: bool) -> Result<AskResponse, Error> {
+    async fn process_prompt(
+        &mut self,
+        input: String,
+        is_refeed: bool,
+    ) -> Result<AskResponse, Error> {
         self.context.summarize(&self.agent, false).await?;
 
         let response = self.context.ask(&self.agent, input, is_refeed).await?;

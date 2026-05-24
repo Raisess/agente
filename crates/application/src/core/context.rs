@@ -53,7 +53,11 @@ impl Context {
         is_refeed: bool,
     ) -> Result<AskResponse, AiProviderError> {
         info!("asking...");
-        let role = if is_refeed { MessageRole::Assistant } else { MessageRole::User };
+        let role = if is_refeed {
+            MessageRole::Assistant
+        } else {
+            MessageRole::User
+        };
 
         self.messages.push(MessageRequest {
             role: role.clone(),

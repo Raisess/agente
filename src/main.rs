@@ -122,7 +122,15 @@ fn provider_factory(provider: Provider, config: &Config) -> Box<dyn AiProvider> 
             panic!("No {label} API config provided");
         }
 
-        f(config.unwrap())
+        let c = config.unwrap();
+        if c.model.is_empty() {
+            panic!("No {label} API model provided");
+        }
+        if c.api_key.is_empty() {
+            panic!("No {label} API key provided");
+        }
+
+        f(c)
     }
 
     match provider {
