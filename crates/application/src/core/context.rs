@@ -50,10 +50,13 @@ impl Context {
         &mut self,
         agent: &Box<dyn AiProvider>,
         prompt: String,
+        is_refeed: bool,
     ) -> Result<AskResponse, AiProviderError> {
         info!("asking...");
+        let role = if is_refeed { MessageRole::Assistant } else { MessageRole::User };
+
         self.messages.push(MessageRequest {
-            role: MessageRole::User,
+            role: role.clone(),
             content: prompt.clone(),
         });
 
@@ -82,7 +85,7 @@ impl Context {
                 append_to_conversation(
                     self.conversation_repository.clone(),
                     self.session_id.clone(),
-                    MessageRole::User,
+                    role,
                     prompt,
                 )
                 .await

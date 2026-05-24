@@ -64,7 +64,7 @@ impl Processor {
                     ))
                     .await?;
             }
-            _ => self.mloop(prompt).await?,
+            _ => self.mloop(prompt, 0).await?,
         }
 
         self.__sender.send(TaskResponse::Done).await?;
@@ -72,20 +72,26 @@ impl Processor {
     }
 
     #[async_recursion::async_recursion]
-    async fn mloop(&mut self, prompt: String) -> Result<(), Error> {
-        let mut plan = ExecutionPlan::generate(&self.agent, prompt).await?;
+    async fn mloop(&mut self, prompt: String, mut max_retries: usize) -> Result<(), Error> {
+        let mut plan = ExecutionPlan::generate(&self.agent, prompt.clone(), ).await?;
         for step in &mut plan.steps {
-            match self.recursively_process_prompt(&mut *step, None).await {
+            match self.recursively_process_prompt(&mut *step, false, None).await {
                 Ok(_) => {}
                 Err(error) => {
                     self.__sender.send(TaskResponse::Error(error)).await?;
+                    max_retries += 1;
+                    let failed_prompt = format!(
+                        "Failed to process prompt: {prompt}, use another tool \
+                                 to find context and then retry it"
+                    );
+                    self.mloop(failed_prompt, max_retries).await?;
                 }
             }
         }
 
         let (is_done, final_result) = plan.is_done(&self.agent).await?;
         if !is_done {
-            self.mloop(final_result).await?;
+            self.mloop(final_result, max_retries).await?;
         }
 
         Ok(())
@@ -95,6 +101,7 @@ impl Processor {
     async fn recursively_process_prompt(
         &mut self,
         step: &mut Step,
+        is_refeed: bool,
         last_executed_tool_hash: Option<String>,
     ) -> Result<(), Error> {
         let prompt = step.prompt();
@@ -103,7 +110,7 @@ impl Processor {
         }
 
         self.__sender.send(TaskResponse::Thinking).await?;
-        let response = self.process_prompt(prompt.clone()).await?;
+        let response = self.process_prompt(prompt.clone(), is_refeed).await?;
         match response {
             AskResponse::Content(text) => {
                 self.__sender
@@ -112,6 +119,10 @@ impl Processor {
                 step.finish(text);
             }
             AskResponse::ToolCall(tools) => {
+                if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
+                    println!("TOOLS: {:#?}", tools);
+                }
+
                 for (tool, arguments) in tools {
                     let hash = Self::generate_tool_hash(&tool, &arguments);
                     if last_executed_tool_hash.is_some()
@@ -130,42 +141,25 @@ impl Processor {
                         )))
                         .await?;
 
-                    match self.execute_tool(&tool, &arguments) {
-                        Ok(tool_response) => {
-                            self.__sender
-                                .send(TaskResponse::ToolResponse((
-                                    tool,
-                                    arguments,
-                                    tool_response.output.clone(),
-                                )))
-                                .await?;
-                            step.finish(tool_response.output.clone());
+                    let tool_response = self.execute_tool(&tool, &arguments)?;
+                    self.__sender
+                        .send(TaskResponse::ToolResponse((
+                            tool.clone(),
+                            arguments,
+                            tool_response.output.clone(),
+                        )))
+                        .await?;
+                    step.finish(tool_response.output.clone());
 
-                            if tool_response.refeed {
-                                let mut tool_response_step =
-                                    Step::new(tool_response.output);
-                                self.recursively_process_prompt(
-                                    &mut tool_response_step,
-                                    Some(hash),
-                                )
-                                .await?;
-                            }
-                        }
-                        Err(e) => {
-                            self.__sender.send(TaskResponse::Error(e)).await?;
-
-                            let failed_prompt = format!(
-                                "Failed to process prompt: {prompt}, use another tool \
-                                 to find context and then retry it"
-                            );
-                            let mut failed_prompt_step = Step::new(failed_prompt);
-                            self.recursively_process_prompt(
-                                &mut failed_prompt_step,
-                                Some(hash),
-                            )
-                            .await?;
-                        }
-                    };
+                    if tool_response.refeed {
+                        let mut tool_response_step = Step::new(tool_response.output);
+                        self.recursively_process_prompt(
+                            &mut tool_response_step,
+                            true,
+                            Some(hash),
+                        )
+                        .await?;
+                    }
                 }
             }
         }
@@ -173,10 +167,10 @@ impl Processor {
         Ok(())
     }
 
-    async fn process_prompt(&mut self, input: String) -> Result<AskResponse, Error> {
+    async fn process_prompt(&mut self, input: String, is_refeed: bool) -> Result<AskResponse, Error> {
         self.context.summarize(&self.agent, false).await?;
 
-        let response = self.context.ask(&self.agent, input).await?;
+        let response = self.context.ask(&self.agent, input, is_refeed).await?;
         Ok(response)
     }
 
