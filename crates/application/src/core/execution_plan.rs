@@ -47,26 +47,38 @@ impl ExecutionPlan {
         &mut self,
         agent: &Box<dyn AiProvider>,
     ) -> Result<(bool, String), Error> {
-        if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
-            println!("FINISHED PLAN: {:#?}", self.steps);
-        }
-
-        if !self.is_complex {
-            return Ok((true, String::new()));
-        }
-
         let executed_plan_summary = self
             .steps
             .iter()
             .map(|step| {
                 format!(
-                    "> {}: {}",
+                    "Request: '{}' | Response: '{}'",
                     step.prompt,
                     step.result.clone().unwrap_or("Not finished".to_string())
                 )
             })
             .collect::<Vec<_>>()
             .join(", ");
+
+        let messages = vec![
+            MessageRequest {
+                role: MessageRole::System,
+                content: confirm_execution_plan_is_done(),
+            },
+            MessageRequest {
+                role: MessageRole::User,
+                content: format!("What is executed: {executed_plan_summary}"),
+            },
+        ];
+
+        let is_done = agent.plain_ask(messages).await?;
+        if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
+            println!("IS_DONE? {is_done} SUMMARY: {executed_plan_summary:#?}");
+        }
+
+        if is_done.to_lowercase().contains("true") {
+            return Ok((true, "".to_string()));
+        }
 
         let mut messages = vec![MessageRequest {
             role: MessageRole::System,
@@ -93,27 +105,7 @@ impl ExecutionPlan {
             println!("EXECUTION_SUMMARY: {execution_summary}");
         }
 
-        let messages = vec![
-            MessageRequest {
-                role: MessageRole::System,
-                content: confirm_execution_plan_is_done(),
-            },
-            MessageRequest {
-                role: MessageRole::User,
-                content: format!("What is executed: {executed_plan_summary}"),
-            },
-            MessageRequest {
-                role: MessageRole::User,
-                content: format!("Results: {execution_summary}"),
-            },
-        ];
-
-        let is_done = agent.plain_ask(messages).await?;
-        if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
-            println!("IS_DONE? {is_done}");
-        }
-
-        Ok((is_done.to_lowercase().contains("true"), execution_summary))
+        Ok((false, execution_summary))
     }
 
     async fn split_prompt(

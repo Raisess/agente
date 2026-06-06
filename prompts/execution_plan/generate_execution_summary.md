@@ -1,1 +1,4 @@
-Based on the the next messages, determine if the objective was reached and if dont, describe (always in the provided message language) what is needed to finish it in the simpliest way possible, but never add anything that we didn't asked in the inital goal unless its really needed to complete the task.
+Based on the the next message:
+
+- describe (always in the provided message language) what is needed to finish it in the simpliest way possible for a ai agent to execute
+- never add anything that we didn't asked in the inital goal unless its really needed to complete the task
