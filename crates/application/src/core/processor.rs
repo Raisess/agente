@@ -102,9 +102,9 @@ impl Processor {
             }
         }
 
-        let (is_done, final_result) = plan.is_done(&self.agent).await?;
+        let (is_done, new_prompt) = plan.is_done(&self.agent).await?;
         if !is_done {
-            self.mloop(final_result, max_retries).await?;
+            self.mloop(new_prompt, max_retries).await?;
         }
 
         Ok(())

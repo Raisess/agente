@@ -10,6 +10,8 @@ pub struct ExecutionPlan {
     last_execution_summary: Option<String>,
 }
 
+// @TODO: check if each step is done individaully and stop mloop in processor
+// @TODO: store the original input and determine if its done based on the step results
 impl ExecutionPlan {
     pub async fn generate(
         agent: &Box<dyn AiProvider>,
@@ -82,7 +84,7 @@ impl ExecutionPlan {
 
         let mut messages = vec![MessageRequest {
             role: MessageRole::System,
-            content: generate_execution_summary(),
+            content: generate_new_prompt_when_not_done(),
         }];
 
         if self.last_execution_summary.is_some() {
@@ -99,13 +101,13 @@ impl ExecutionPlan {
             content: executed_plan_summary.clone(),
         });
 
-        let execution_summary = agent.plain_ask(messages).await?;
-        self.last_execution_summary = Some(execution_summary.clone());
+        let new_prompt = agent.plain_ask(messages).await?;
+        self.last_execution_summary = Some(executed_plan_summary);
         if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
-            println!("EXECUTION_SUMMARY: {execution_summary}");
+            println!("EXECUTION_SUMMARY: {new_prompt}");
         }
 
-        Ok((false, execution_summary))
+        Ok((false, new_prompt))
     }
 
     async fn split_prompt(
@@ -179,9 +181,9 @@ fn confirm_execution_plan_is_done() -> String {
     )
 }
 
-fn generate_execution_summary() -> String {
+fn generate_new_prompt_when_not_done() -> String {
     load_file_installed(
-        "prompts/execution_plan/generate_execution_summary.md",
+        "prompts/execution_plan/generate_new_prompt_when_not_done.md",
         vec![],
     )
 }

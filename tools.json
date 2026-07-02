@@ -2,7 +2,7 @@
   {
     "type": "function",
     "name": "explore",
-    "description": "Explore the project contents, folders and files.",
+    "description": "Use to find files in the current and sub directories of the project",
     "parameters": {
       "type": "object",
       "properties": {
@@ -14,7 +14,7 @@
   {
     "type": "function",
     "name": "read",
-    "description": "Read a file content.",
+    "description": "Use to read files in the current directory, try with the provided path before using explore tool",
     "parameters": {
       "type": "object",
       "properties": {
@@ -26,7 +26,7 @@
   {
     "type": "function",
     "name": "write",
-    "description": "Write content to a file.",
+    "description": "Use to write content to files, this is a overwriting process, so for existent files the content should be readed first",
     "parameters": {
       "type": "object",
       "properties": {
@@ -39,7 +39,7 @@
   {
     "type": "function",
     "name": "search",
-    "description": "Search for info on the web.",
+    "description": "Use to search for information on web and for getting urls to be used with the `fetch` tool",
     "parameters": {
       "type": "object",
       "properties": {
@@ -51,7 +51,7 @@
   {
     "type": "function",
     "name": "fetch",
-    "description": "Fetch a web page from a url, normally used after the search tool.",
+    "description": "Use to retrieve the entire data from url/links passed by the user or resulted from the `search` tool when the data on it is not enough",
     "parameters": {
       "type": "object",
       "properties": {
@@ -63,7 +63,7 @@
   {
     "type": "function",
     "name": "bash",
-    "description": "Execute bash commands in the host machine.",
+    "description": "Use to execute linux shell commands, you can use `git` to analyze project commits and previous iterations of files or executing testing code with `python3` when needed, you also can use it to create folders and move folders and files around when needed, never run a project directly, make it to run in a subprocess pointing the stdout to a temporary file in `/tmp`",
     "parameters": {
       "type": "object",
       "properties": {

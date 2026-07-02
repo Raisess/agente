@@ -1,6 +1,5 @@
 Based on the next message:
 
-- determine if the request is responded based on the response data, if the response include enough information or a reasonable response for the objective, consider it done
-- return true if reached and false if don't
+- determine if the `Request` is responded based on the `response` content
 
 IMPORTANT: respond only with true or false
