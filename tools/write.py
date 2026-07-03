@@ -2,7 +2,7 @@
 
 import argparse
 
-from __common import to_path
+from __common import file_exists, to_path
 
 def write_file(path: str, content: str) -> None:
   file_path = to_path(path)
@@ -29,6 +29,10 @@ def main() -> None:
   )
 
   args = parser.parse_args()
+  if not file_exists(args.path):
+    print("File do not exists!")
+    return
+
   write_file(args.path, args.content)
   print(f"Written to {args.path}")
 

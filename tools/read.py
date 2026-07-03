@@ -2,7 +2,7 @@
 
 import argparse
 
-from __common import to_path
+from __common import file_exists, to_path
 
 def read_file(path: str) -> str:
   file_path = to_path(path)
@@ -26,6 +26,10 @@ def main():
   )
 
   args = parser.parse_args()
+  if not file_exists(args.path):
+    print("File do not exists!")
+    return
+
   content = read_file(args.path)
   print(f"File content {content}")
 

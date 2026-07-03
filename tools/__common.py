@@ -9,3 +9,7 @@ def to_path(path: str) -> Path:
     raise Exception(f"Invalid path, outside working dir: {WORKING_DIR}")
 
   return path
+
+
+def file_exists(path: str) -> bool:
+  return os.path.exists(path)
