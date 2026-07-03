@@ -56,7 +56,7 @@ impl Processor {
     }
 
     pub async fn handle(&mut self, prompt: String) -> Result<(), Error> {
-        match prompt.as_str() {
+        match prompt.trim() {
             "/exit" => std::process::exit(0),
             "/compact" => {
                 self.context.summarize(&self.agent, true).await?;
@@ -66,7 +66,7 @@ impl Processor {
                     ))
                     .await?;
             }
-            _ => self.mloop(prompt, 0).await?,
+            v => self.mloop(v.to_string(), 0).await?,
         }
 
         self.__sender.send(TaskResponse::Done).await?;

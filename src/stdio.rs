@@ -1,4 +1,7 @@
-use std::{collections::HashMap, io::Write};
+use std::collections::HashMap;
+
+use rustyline::DefaultEditor;
+use rustyline::error::ReadlineError;
 
 use agente_application::core::processor::{Processor, TaskResponse};
 use agente_domain::{error::Error, models::session::Session};
@@ -39,16 +42,20 @@ pub async fn start_stdio(
     draw_message(&name, "Hello! Send me a message!");
     draw_input();
 
+    let mut rl = DefaultEditor::new().expect("Failed to start default editor");
     loop {
-        let mut prompt = String::new();
-        std::io::stdin()
-            .read_line(&mut prompt)
-            .expect("Failed to read from stdin");
-        if prompt.is_empty() {
-            continue;
+        let readline = rl.readline("");
+        match readline {
+            Ok(prompt) => {
+                let _ = processor.handle(prompt).await;
+            }
+            Err(ReadlineError::Interrupted) => break,
+            Err(ReadlineError::Eof) => break,
+            Err(err) => {
+                println!("Readline Error: {:?}", err);
+                break;
+            }
         }
-
-        let _ = processor.handle(prompt.trim().to_string()).await;
     }
 }
 
@@ -130,8 +137,7 @@ fn draw_thinking() {
 }
 
 fn draw_input() {
-    print!("\r\x1b[K{}", "> Type something: ");
-    std::io::stdout().flush().unwrap();
+    println!("{}> Type something:{}", Ansi::BOLD, Ansi::RESET);
 }
 
 fn draw_message(name: &String, message: impl Into<String> + std::fmt::Display) {
