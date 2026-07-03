@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
+use tracing::debug;
 
 use agente_domain::error::Error;
 use agente_domain::ports::ai_provider::{AiProvider, AskResponse};
@@ -11,7 +12,6 @@ use agente_infrastructure::adapters::util::cmd::CMD;
 use agente_infrastructure::config::Config;
 
 use crate::core::context::Context;
-use crate::core::execution_plan::{ExecutionPlan, Step};
 
 static MAX_ERROR_RETRIES: usize = 3;
 
@@ -79,32 +79,24 @@ impl Processor {
         prompt: String,
         mut max_retries: usize,
     ) -> Result<(), Error> {
-        let mut plan = ExecutionPlan::generate(&self.agent, prompt.clone()).await?;
-        for step in &mut plan.steps {
-            match self
-                .recursively_process_prompt(&mut *step, false, None)
-                .await
-            {
-                Ok(_) => {}
-                Err(error) => {
-                    max_retries += 1;
-                    if max_retries >= MAX_ERROR_RETRIES {
-                        return Err(error);
-                    }
-
-                    self.__sender.send(TaskResponse::Error(error)).await?;
-                    let failed_prompt = format!(
-                        "Failed to process prompt: {prompt}, use another tool \
-                                 to find context and then retry it"
-                    );
-                    self.mloop(failed_prompt, max_retries).await?;
+        match self
+            .recursively_process_prompt(prompt.clone(), false, None)
+            .await
+        {
+            Ok(_) => {}
+            Err(error) => {
+                max_retries += 1;
+                if max_retries >= MAX_ERROR_RETRIES {
+                    return Err(error);
                 }
-            }
-        }
 
-        let (is_done, new_prompt) = plan.is_done(&self.agent).await?;
-        if !is_done {
-            self.mloop(new_prompt, max_retries).await?;
+                self.__sender.send(TaskResponse::Error(error)).await?;
+                let failed_prompt = format!(
+                    "Failed to process prompt: {prompt}, use another tool \
+                                 to find context and then retry it"
+                );
+                self.mloop(failed_prompt, max_retries).await?;
+            }
         }
 
         Ok(())
@@ -113,11 +105,10 @@ impl Processor {
     #[async_recursion::async_recursion]
     async fn recursively_process_prompt(
         &mut self,
-        step: &mut Step,
+        prompt: String,
         is_refeed: bool,
         last_executed_tool_hash: Option<String>,
     ) -> Result<(), Error> {
-        let prompt = step.prompt();
         if prompt.is_empty() {
             return Ok(());
         }
@@ -129,12 +120,9 @@ impl Processor {
                 self.__sender
                     .send(TaskResponse::MessageResponse(text.clone()))
                     .await?;
-                step.finish(text);
             }
             AskResponse::ToolCall(tools) => {
-                if std::env::var("DEBUG_PROMPT").unwrap_or("0".to_string()) == "1" {
-                    println!("TOOLS: {:#?}", tools);
-                }
+                debug!(name: "tools", "tools that will be used: {tools:?}");
 
                 for (tool, arguments) in tools {
                     let hash = Self::generate_tool_hash(&tool, &arguments);
@@ -162,12 +150,10 @@ impl Processor {
                             tool_response.output.clone(),
                         )))
                         .await?;
-                    step.finish(tool_response.output.clone());
 
                     if tool_response.refeed {
-                        let mut tool_response_step = Step::new(tool_response.output);
                         self.recursively_process_prompt(
-                            &mut tool_response_step,
+                            tool_response.output,
                             true,
                             Some(hash),
                         )
