@@ -107,7 +107,7 @@ impl Context {
 
     // @TODO: should save summarized conversations into the db and fetch it
     // instead of listing every message.
-    // @TODO: should save a conversation resume in a separated table to us can
+    // @TODO: should save a conversation resume in the session table to us can
     // list the current sessions and see what they are about and get the id to
     // start it.
     pub async fn summarize(
@@ -118,6 +118,7 @@ impl Context {
         if self.messages.len() >= Config::max_context_memory_size() || force {
             info!("summarizing...");
             let messages = self.messages.drain(1..).collect::<Vec<_>>();
+            // @TODO: use plain ask here with the system prompt separated
             let result = agent
                 .ask(vec![MessageRequest {
                     role: MessageRole::User,
@@ -128,6 +129,7 @@ impl Context {
             match result {
                 AskResponse::Content(text) => {
                     info!("summarized: {}", text);
+                    // @TODO: maybe this shouldnt be system role
                     self.messages.push(MessageRequest {
                         role: MessageRole::System,
                         content: text,

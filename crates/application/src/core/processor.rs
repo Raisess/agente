@@ -15,8 +15,6 @@ use crate::core::context::Context;
 
 static MAX_ERROR_RETRIES: usize = 3;
 
-// @TODO: link a message id, will be useful for websocket server to know message
-// and tool contexts
 pub enum TaskResponse {
     Done,
     Thinking,
