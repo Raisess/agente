@@ -20,12 +20,18 @@ use agente_infrastructure::config::Config;
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 struct Args {
-    /// Session ID
+    /// Session ID - Use to return to a previous conversation session.
     #[arg(long)]
     session: Option<String>,
-    /// AI Provider
+    /// AI Provider - Use to select the desired AI provider: openai, groq.
     #[arg(long)]
     provider: Option<Provider>,
+    /// Custom system prompt - Use to set a custom system prompt for the agent.
+    #[arg(long)]
+    system: Option<String>,
+    /// Custom name - Use to set a custom agent name.
+    #[arg(long)]
+    name: Option<String>,
 }
 
 #[tokio::main]
@@ -45,13 +51,18 @@ async fn main() {
             .expect("Failed to load conversation");
 
     let provider = args.provider.unwrap_or(Provider::OPENAI);
-    let name = config.name.clone().unwrap_or("Agente".to_string());
+    let name = args
+        .name
+        .unwrap_or(config.name.clone().unwrap_or("Agente".to_string()));
+    let custom_system_prompt = args.system;
+    let current_session_id = session.id.to_string();
 
     let agent = provider_factory(provider, &config);
     let context = Context::init(
-        name.clone(),
         conversation_repository,
-        session.id.to_string(),
+        name.clone(),
+        custom_system_prompt,
+        current_session_id,
         conversation,
     );
     let mut processor = Processor::init(agent, context);

@@ -20,15 +20,16 @@ pub struct Context {
 
 impl Context {
     pub fn init(
-        name: String,
         conversation_repository: Arc<ConversationRepository>,
+        name: String,
+        custom_system_prompt: Option<String>,
         session_id: String,
         messages: Vec<Message>,
     ) -> Self {
         // @TODO: should get messages from conversation as summarized
         let mut message_requests = vec![MessageRequest {
             role: MessageRole::System,
-            content: system_prompt(name),
+            content: system_prompt(name, custom_system_prompt),
         }];
 
         for message in messages {
@@ -105,7 +106,10 @@ impl Context {
     }
 
     // @TODO: should save summarized conversations into the db and fetch it
-    // instead of listing every message
+    // instead of listing every message.
+    // @TODO: should save a conversation resume in a separated table to us can
+    // list the current sessions and see what they are about and get the id to
+    // start it.
     pub async fn summarize(
         &mut self,
         agent: &Box<dyn AiProvider>,
@@ -152,9 +156,9 @@ fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
     )
 }
 
-fn system_prompt(name: String) -> String {
+fn system_prompt(name: String, custom_prompt: Option<String>) -> String {
     load_file_installed(
         "prompts/context/system.md",
-        vec![("name", name), ("current_dir", Config::pwd())],
+        vec![("name", name), ("current_dir", Config::pwd()), ("custom_prompt", custom_prompt.unwrap_or("You are an autonomous AI agent running in a agentic loop, designed to help users accomplish tasks, solve problems, and provide accurate information.".to_string()))],
     )
 }
