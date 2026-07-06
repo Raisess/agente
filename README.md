@@ -1,5 +1,7 @@
 # Agente
 
+![Screenshot](screenshot.png)
+
 To use this project, follow these steps:
 
 1. **Setup Environment**:
