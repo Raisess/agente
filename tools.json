@@ -14,7 +14,7 @@
   {
     "type": "function",
     "name": "read",
-    "description": "Use to read files in the current directory, try with the provided path before using explore tool",
+    "description": "Use to read text files in the current directory, try with the provided path before using explore tool",
     "parameters": {
       "type": "object",
       "properties": {
@@ -26,7 +26,7 @@
   {
     "type": "function",
     "name": "write",
-    "description": "Use to write content to files, this is a overwriting process, so for existent files the content should be readed first",
+    "description": "Use to write text content to files, this is a overwriting process, so for existent files the content should be readed first",
     "parameters": {
       "type": "object",
       "properties": {
