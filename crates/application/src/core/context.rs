@@ -118,44 +118,40 @@ impl Context {
         if self.messages.len() >= Config::max_context_memory_size() || force {
             info!("summarizing...");
             let messages = self.messages.drain(1..).collect::<Vec<_>>();
-            // @TODO: use plain ask here with the system prompt separated
-            let result = agent
-                .ask(vec![MessageRequest {
-                    role: MessageRole::User,
-                    content: summarize_messages_prompt(messages),
-                }])
+            let messages_prompt = messages
+                .iter()
+                .map(|MessageRequest { role, content }| {
+                    format!("Role: {role}, Content: {content}")
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+
+            let summarized_text = agent
+                .plain_ask(vec![
+                    MessageRequest {
+                        role: MessageRole::System,
+                        content: summarize_messages_prompt(),
+                    },
+                    MessageRequest {
+                        role: MessageRole::User,
+                        content: messages_prompt,
+                    },
+                ])
                 .await?;
 
-            match result {
-                AskResponse::Content(text) => {
-                    info!("summarized: {}", text);
-                    // @TODO: maybe this shouldnt be system role
-                    self.messages.push(MessageRequest {
-                        role: MessageRole::System,
-                        content: text,
-                    });
-                }
-                _ => {}
-            }
+            info!("summarized: {}", summarized_text);
+            self.messages.push(MessageRequest {
+                role: MessageRole::Assistant,
+                content: format!("Conversation summary until now: {summarized_text}"),
+            });
         }
 
         Ok(())
     }
 }
 
-fn summarize_messages_prompt(messages: Vec<MessageRequest>) -> String {
-    let messages_prompt = messages
-        .iter()
-        .map(|MessageRequest { role, content }| {
-            format!("Role: {role}, Content: {content}")
-        })
-        .collect::<Vec<_>>()
-        .join(", ");
-
-    load_file_installed(
-        "prompts/context/summarizer.md",
-        vec![("messages", messages_prompt)],
-    )
+fn summarize_messages_prompt() -> String {
+    load_file_installed("prompts/context/summarizer.md", vec![])
 }
 
 fn system_prompt(name: String, custom_prompt: Option<String>) -> String {

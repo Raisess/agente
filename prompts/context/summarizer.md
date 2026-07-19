@@ -1,7 +1,6 @@
 You are a summarization tool.
 
-Summarize the following list of messages:
-{{messages_prompt}}
+Summarize the user input text based on the next rules:
 
 ### Rules
 - Preserve all essential context required to continue the conversation correctly.
