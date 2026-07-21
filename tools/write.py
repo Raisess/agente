@@ -29,10 +29,6 @@ def main() -> None:
   )
 
   args = parser.parse_args()
-  if not file_exists(args.path):
-    print("File do not exists!")
-    return
-
   write_file(args.path, args.content)
   print(f"Written to {args.path}")
 
