@@ -171,6 +171,7 @@ impl Processor {
     ) -> Result<AskResponse, Error> {
         self.context.summarize(&self.agent, false).await?;
 
+        // @TODO: check input length and split it when it exceeds maximum allowed size
         let response = self.context.ask(&self.agent, input, is_refeed).await?;
         Ok(response)
     }
