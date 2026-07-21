@@ -13,8 +13,20 @@ def bash(command: str) -> None:
       return
 
   parsed_command = shlex.split(command)
+
+  to_pop = []
+  envs = {}
+  for (i, part) in enumerate(parsed_command):
+    if "=" in part:
+      to_pop.append(i)
+      (key, value) = part.split("=")
+      envs[key] = value
+
+
+  parsed_command = [v for i, v in enumerate(parsed_command) if i not in to_pop]
   p = subprocess.Popen(
     parsed_command,
+    env=envs,
     stdout=subprocess.PIPE,
     stderr=subprocess.STDOUT,
     encoding="utf-8",
@@ -25,7 +37,9 @@ def bash(command: str) -> None:
     print(line, end="")
 
   p.wait()
-  print("\nProcess exited with code:", p.returncode)
+
+  if p.returncode != 0:
+    print("\nProcess exited with code:", p.returncode)
 
 
 if __name__ == "__main__":
