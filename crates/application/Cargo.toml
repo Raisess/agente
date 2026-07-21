@@ -8,6 +8,7 @@ agente-domain = { path = "../domain" }
 agente-infrastructure = { path = "../infrastructure" }
 async-recursion = "1.1.1"
 sqlx = { workspace = true }
+chrono = { workspace = true }
 async-trait = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }

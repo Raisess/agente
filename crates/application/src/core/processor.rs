@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
-use tracing::debug;
+use tracing::info;
 
 use agente_domain::error::Error;
 use agente_domain::ports::ai_provider::{AiProvider, AskResponse};
@@ -120,7 +120,7 @@ impl Processor {
                     .await?;
             }
             AskResponse::ToolCall(tools) => {
-                debug!(name: "tools", "tools that will be used: {tools:?}");
+                info!(name: "tools", "tools that will be used: {tools:?}");
 
                 for (tool, arguments) in tools {
                     let hash = Self::generate_tool_hash(&tool, &arguments);

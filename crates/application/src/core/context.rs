@@ -27,9 +27,10 @@ impl Context {
         messages: Vec<Message>,
     ) -> Self {
         // @TODO: should get messages from conversation as summarized
+        let date = chrono::Utc::now().format("%Y/%m/%d").to_string();
         let mut message_requests = vec![MessageRequest {
             role: MessageRole::System,
-            content: system_prompt(name, custom_system_prompt),
+            content: system_prompt(name, Config::pwd(), date, custom_system_prompt),
         }];
 
         for message in messages {
@@ -154,9 +155,14 @@ fn summarize_messages_prompt() -> String {
     load_file_installed("prompts/context/summarizer.md", vec![])
 }
 
-fn system_prompt(name: String, custom_prompt: Option<String>) -> String {
+fn system_prompt(
+    name: String,
+    current_dir: String,
+    date: String,
+    custom_prompt: Option<String>,
+) -> String {
     load_file_installed(
         "prompts/context/system.md",
-        vec![("name", name), ("current_dir", Config::pwd()), ("custom_prompt", custom_prompt.unwrap_or("You are an autonomous AI agent running in a agentic loop, designed to help users accomplish tasks, solve problems, and provide accurate information.".to_string()))],
+        vec![("name", name), ("current_dir", current_dir), ("date", date), ("custom_prompt", custom_prompt.unwrap_or("You are an autonomous AI agent running in a agentic loop, designed to help users accomplish tasks, solve problems, and provide accurate information.".to_string()))],
     )
 }
