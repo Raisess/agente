@@ -55,7 +55,10 @@ impl Processor {
 
     pub async fn handle(&mut self, prompt: String) -> Result<(), Error> {
         match prompt.trim() {
-            "/exit" => std::process::exit(0),
+            "/exit" => {
+                println!(">>> Your session id is: {}", self.context.session_id());
+                std::process::exit(0);
+            }
             "/compact" => {
                 self.context.summarize(&self.agent, true).await?;
                 self.__sender

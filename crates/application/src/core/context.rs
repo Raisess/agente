@@ -48,6 +48,11 @@ impl Context {
         }
     }
 
+    #[inline]
+    pub fn session_id(&self) -> String {
+        self.session_id.clone()
+    }
+
     pub async fn ask(
         &mut self,
         agent: &Box<dyn AiProvider>,
