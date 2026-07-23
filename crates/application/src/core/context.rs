@@ -79,12 +79,13 @@ impl Context {
                     content: match ask_response {
                         AskResponse::Content(ref text) => text.clone(),
                         AskResponse::ToolCall(ref tools) => {
-                            // @FIXME: this should consider tool arguments
                             format!(
                                 "Executed tools: {}",
                                 tools
                                     .iter()
-                                    .map(|(tool, _)| tool.clone())
+                                    .map(|(tool, args)| AskResponse::generate_tool_hash(
+                                        tool, args
+                                    ))
                                     .collect::<Vec<_>>()
                                     .join(", ")
                             )

@@ -39,7 +39,7 @@ def main():
     return
 
   content = read_file(args.path)
-  print(f"File content {content}")
+  print(f"[File content]: {content}")
 
 
 if __name__ == "__main__":

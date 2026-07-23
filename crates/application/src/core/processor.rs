@@ -126,7 +126,7 @@ impl Processor {
                 info!(name: "tools", "tools that will be used: {tools:?}");
 
                 for (tool, arguments) in tools {
-                    let hash = Self::generate_tool_hash(&tool, &arguments);
+                    let hash = AskResponse::generate_tool_hash(&tool, &arguments);
                     if last_executed_tool_hash.is_some()
                         && last_executed_tool_hash.eq(&Some(hash.clone()))
                     {
@@ -203,16 +203,5 @@ impl Processor {
             output,
             refeed: tool != "write",
         })
-    }
-
-    fn generate_tool_hash(tool: &String, arguments: &HashMap<String, String>) -> String {
-        format!(
-            "{tool} {}",
-            arguments
-                .iter()
-                .map(|(key, value)| format!("{key}: {value}"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        )
     }
 }

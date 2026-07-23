@@ -53,6 +53,22 @@ pub enum AskResponse {
     ToolCall(Vec<(String, HashMap<String, String>)>),
 }
 
+impl AskResponse {
+    pub fn generate_tool_hash(
+        tool: &String,
+        arguments: &HashMap<String, String>,
+    ) -> String {
+        format!(
+            "{tool} {}",
+            arguments
+                .iter()
+                .map(|(key, value)| format!("{key}: {value}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+}
+
 /// Used to mount the message request vector
 #[derive(Debug, Clone)]
 pub struct MessageRequest {
