@@ -1,6 +1,0 @@
-- O preÃ§o da alface crespa varia de acordo com o fornecedor:
-  - Mercado Livre: NÃ£o foi especificado o preÃ§o da alface crespa, seria necessÃ¡rio acessar o link fornecido para conferir.
-  - MF Rural: O preÃ§o da caixa de alface crespa Ã© de R$ 22,00, negociÃ¡vel conforme a quantidade.
-  - AxÃ¡ OrgÃ¢nicos: O preÃ§o da alface crespa orgÃ¢nica Ã© de R$ 5,50 em promoÃ§Ã£o.
-  - Hortifruti Inbox: NÃ£o foi especificado o preÃ§o por quilograma da alface crespa, seria necessÃ¡rio acessar o link fornecido para conferir.
-  - Zaffari: NÃ£o foi especificado o preÃ§o da alface crespa, seria necessÃ¡rio acessar o link fornecido para conferir.

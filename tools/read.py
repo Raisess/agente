@@ -1,5 +1,7 @@
 #! /usr/bin/env python3
 
+# @TODO: add support for pdf files, use a custom format obj with a callable property
+
 import argparse
 
 from __common import file_exists, to_path

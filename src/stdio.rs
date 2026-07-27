@@ -79,11 +79,7 @@ fn draw_command_response(
     arguments: HashMap<String, String>,
     response: String,
 ) {
-    let parsed_args = arguments
-        .iter()
-        .map(|(key, value)| format!("{key}: {value}"))
-        .collect::<Vec<_>>()
-        .join(", ");
+    let parsed_args = __parse_tool_arguments(arguments);
 
     if response.is_empty() {
         println!(
@@ -96,11 +92,7 @@ fn draw_command_response(
             Ansi::RESET
         );
     } else {
-        fn truncate_chars(s: &str, max_chars: usize) -> String {
-            s.chars().take(max_chars).collect()
-        }
-
-        let cropped_response = truncate_chars(&response, MAX_COMMAND_OUTPUT_SIZE);
+        let cropped_response = __truncate_chars(&response, MAX_COMMAND_OUTPUT_SIZE);
         println!(
             "{}{}< Resolved({}{command}({parsed_args}){}{}){}: {cropped_response}...",
             Ansi::BOLD,
@@ -114,11 +106,7 @@ fn draw_command_response(
 }
 
 fn draw_command_signature(command: String, arguments: HashMap<String, String>) {
-    let parsed_args = arguments
-        .iter()
-        .map(|(key, value)| format!("{key}: {value}"))
-        .collect::<Vec<_>>()
-        .join(", ");
+    let parsed_args = __parse_tool_arguments(arguments);
 
     println!(
         "{}{}< Running({}{command}({parsed_args}){}{}){}",
@@ -129,6 +117,18 @@ fn draw_command_signature(command: String, arguments: HashMap<String, String>) {
         Ansi::FG_BLUE,
         Ansi::RESET
     );
+}
+
+fn __parse_tool_arguments(arguments: HashMap<String, String>) -> String {
+    arguments
+        .iter()
+        .map(|(key, value)| format!("{key}: {}", __truncate_chars(value, 200)))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn __truncate_chars(s: &str, max_chars: usize) -> String {
+    s.chars().take(max_chars).collect()
 }
 
 fn draw_thinking() {
