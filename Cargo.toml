@@ -26,6 +26,7 @@ async-trait = { workspace = true }
 clap = { version = "4", features = ["derive"] }
 regex = "1.12.3"
 rustyline = "18.0.1"
+termimad = "0.35.1"
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }

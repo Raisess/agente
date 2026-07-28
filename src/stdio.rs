@@ -145,11 +145,12 @@ fn draw_input() {
 }
 
 fn draw_message(name: &String, message: impl Into<String> + std::fmt::Display) {
-    println!(
-        "{}{}[◉‿◉] > {name}{}: {message}",
+    print!(
+        "{}{}[◉‿◉] > {name}{}: {}",
         Ansi::BOLD,
         Ansi::FG_GREEN,
-        Ansi::RESET
+        Ansi::RESET,
+        termimad::text(&message.into()),
     );
 }
 
