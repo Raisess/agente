@@ -22,9 +22,9 @@ impl Context {
     pub fn init(
         conversation_repository: Arc<ConversationRepository>,
         name: String,
-        custom_system_prompt: Option<String>,
         session_id: String,
         messages: Vec<Message>,
+        custom_system_prompt: Option<String>,
     ) -> Self {
         // @TODO: should get messages from conversation as summarized
         let date = chrono::Utc::now().format("%Y/%m/%d").to_string();

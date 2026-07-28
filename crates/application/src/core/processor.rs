@@ -53,12 +53,16 @@ impl Processor {
         self.__receiver.clone()
     }
 
+    pub async fn exit(&mut self) -> Result<(), Error> {
+        println!("Exiting... | Conversation compacting and saving...");
+        self.context.summarize(&self.agent, true).await?;
+        println!(">>> Your session id is: {}", self.context.session_id());
+        std::process::exit(0);
+    }
+
     pub async fn handle(&mut self, prompt: String) -> Result<(), Error> {
         match prompt.trim() {
-            "/exit" => {
-                println!(">>> Your session id is: {}", self.context.session_id());
-                std::process::exit(0);
-            }
+            "/exit" => self.exit().await?,
             "/compact" => {
                 self.context.summarize(&self.agent, true).await?;
                 self.__sender

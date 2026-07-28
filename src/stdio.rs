@@ -51,7 +51,7 @@ pub async fn start_stdio(
                 let _ = processor.handle(prompt).await;
             }
             Err(ReadlineError::Interrupted) => {
-                println!(">>> Your session id is: {}", session.id.to_string());
+                processor.exit().await.expect("Failed to exit program!");
                 break;
             }
             Err(ReadlineError::Eof) => break,

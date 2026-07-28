@@ -54,16 +54,16 @@ async fn main() {
     let name = args
         .name
         .unwrap_or(config.name.clone().unwrap_or("Agente".to_string()));
-    let custom_system_prompt = args.system;
     let current_session_id = session.id.to_string();
+    let custom_system_prompt = args.system;
 
     let agent = provider_factory(provider, &config);
     let context = Context::init(
         conversation_repository,
         name.clone(),
-        custom_system_prompt,
         current_session_id,
         conversation,
+        custom_system_prompt,
     );
     let mut processor = Processor::init(agent, context);
 
