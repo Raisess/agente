@@ -53,6 +53,10 @@ impl Config {
         std::env::var("PORT").unwrap_or("3030".to_string())
     }
 
+    pub fn max_search_tool_results() -> String {
+        std::env::var("MAX_SEARCH_TOOL_RESULTS").unwrap_or("10".to_string())
+    }
+
     pub fn max_context_memory_size() -> usize {
         std::env::var("MAX_C_SIZE")
             .unwrap_or("356".to_string())

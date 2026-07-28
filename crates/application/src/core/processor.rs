@@ -200,7 +200,10 @@ impl Processor {
         let output = self.cmd.exec(
             "python3",
             script,
-            vec![("WORKING_DIR".to_string(), Config::pwd())],
+            vec![
+                ("WORKING_DIR", Config::pwd()),
+                ("MAX_RESULTS", Config::max_search_tool_results()),
+            ],
         )?;
 
         Ok(ToolResponse {

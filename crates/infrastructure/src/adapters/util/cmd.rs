@@ -11,7 +11,7 @@ impl Executor for CMD {
         &self,
         cmd: &str,
         args: Vec<ExecutorArgument>,
-        envs: Vec<(String, String)>,
+        envs: Vec<(&str, String)>,
     ) -> Result<String, Error> {
         let mut command = Command::new(cmd);
         command.envs(envs);
