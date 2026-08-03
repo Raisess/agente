@@ -15,6 +15,7 @@ use crate::repositories::conversation::ConversationRepository;
 use crate::repositories::session::SessionRepository;
 
 pub struct Context {
+    __start_messages_count: usize,
     session_repository: Arc<SessionRepository>,
     conversation_repository: Arc<ConversationRepository>,
     session_id: String,
@@ -37,6 +38,7 @@ impl Context {
             content: system_prompt(name, Config::pwd(), date, custom_system_prompt),
         }];
 
+        let start_messages_count = messages.len();
         for message in messages {
             message_requests.push(MessageRequest {
                 role: message.role.into(),
@@ -46,6 +48,7 @@ impl Context {
 
         info!(name: "messages", "{:#?}", message_requests);
         Self {
+            __start_messages_count: start_messages_count,
             session_repository,
             conversation_repository,
             session_id,
@@ -124,6 +127,10 @@ impl Context {
         agent: &Box<dyn AiProvider>,
         force: bool,
     ) -> Result<(), AiProviderError> {
+        if force && self.__start_messages_count <= self.messages.len() {
+            return Ok(());
+        }
+
         if self.messages.len() >= Config::max_context_memory_size() || force {
             info!("summarizing...");
             let messages = self.messages.drain(1..).collect::<Vec<_>>();
