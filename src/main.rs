@@ -8,7 +8,9 @@ use agente::stdio::start_stdio;
 
 use agente_application::core::context::Context;
 use agente_application::core::processor::Processor;
-use agente_application::core::{get_conversation, init_session};
+use agente_application::core::{
+    get_conversation, init_session, list_sessions_per_users_and_directory,
+};
 use agente_application::repositories::conversation::ConversationRepository;
 use agente_application::repositories::session::SessionRepository;
 use agente_domain::ports::ai_provider::{AiProvider, AiProviderConfig};
@@ -32,6 +34,9 @@ struct Args {
     /// Custom name - Use to set a custom agent name.
     #[arg(long)]
     name: Option<String>,
+    /// List sessions - list the available sessions for the directory.
+    #[arg(short, long)]
+    ls: bool,
 }
 
 #[tokio::main]
@@ -42,7 +47,30 @@ async fn main() {
 
     let (config, session_repository, conversation_repository) = setup().await;
     let args = Args::parse();
-    let session = init_session(session_repository, args.session)
+    if args.ls == true {
+        let sessions = list_sessions_per_users_and_directory(session_repository.clone())
+            .await
+            .expect("Failed to list available sessions");
+        let text_to_print = sessions
+            .iter()
+            .map(|session| {
+                format!(
+                    "- **ID:** {}\n  - **Content:** `{}`\n  - **Last update:** {}",
+                    session.id.to_string(),
+                    session
+                        .summary_phrase
+                        .clone()
+                        .unwrap_or("No content yet".to_string()),
+                    session.updated_at.to_string(),
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        termimad::print_text(&text_to_print);
+        return;
+    }
+
+    let session = init_session(session_repository.clone(), args.session)
         .await
         .expect("Failed to init session");
     let conversation =
@@ -59,6 +87,7 @@ async fn main() {
 
     let agent = provider_factory(provider, &config);
     let context = Context::init(
+        session_repository,
         conversation_repository,
         name.clone(),
         current_session_id,

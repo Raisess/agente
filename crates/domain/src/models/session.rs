@@ -11,6 +11,7 @@ pub struct Session {
     pub username: String,
     pub hostname: String,
     pub directory: String,
+    pub summary_phrase: Option<String>,
 }
 
 impl Session {
@@ -22,6 +23,7 @@ impl Session {
             username: whoami::username().expect("should get the username"),
             hostname: whoami::hostname().expect("should get the hostname"),
             directory,
+            summary_phrase: None,
         }
     }
 

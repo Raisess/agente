@@ -38,7 +38,6 @@ pub async fn start_stdio(
         }
     });
 
-    // @TODO: session selector
     draw_banner(session.id.to_string());
     draw_message(&name, "Hello! Send me a message!");
     draw_input();

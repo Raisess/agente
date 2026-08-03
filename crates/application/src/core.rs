@@ -37,6 +37,15 @@ pub async fn init_session(
     }
 }
 
+pub async fn list_sessions_per_users_and_directory(
+    session_repository: Arc<SessionRepository>,
+) -> Result<Vec<Session>, Error> {
+    let username = whoami::username().expect("should get the username");
+    Ok(session_repository
+        .find_by_username_and_directory(username, Config::pwd())
+        .await?)
+}
+
 pub async fn append_to_conversation(
     conversation_repository: Arc<ConversationRepository>,
     session_id: String,

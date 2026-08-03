@@ -11,8 +11,13 @@ CREATE TABLE IF NOT EXISTS sessions(
     updated_at TIMESTAMPTZ NOT NULL,
     username VARCHAR(100) NOT NULL,
     hostname VARCHAR(100) NOT NULL,
-    directory VARCHAR(500) NOT NULL
-);"#;
+    directory VARCHAR(500) NOT NULL,
+    summary_phrase VARCHAR(100) NULL
+);
+
+CREATE INDEX IF NOT EXISTS sessions_per_directory ON sessions(directory);
+CREATE INDEX IF NOT EXISTS sessions_per_user ON sessions(username, directory);
+"#;
 
 pub struct SessionRepository {
     db: Arc<dyn Database<sqlx::Pool<sqlx::Sqlite>>>,
@@ -40,6 +45,35 @@ impl SessionRepository {
             .execute(&*self.db.expose())
             .await?;
         Ok(())
+    }
+
+    pub async fn change_summary_phrase(
+        &self,
+        id: uuid::Uuid,
+        summary_phrase: String,
+    ) -> Result<(), Error> {
+        let sql = "UPDATE sessions SET summary_phrase = ?, updated_at = datetime('now') WHERE id = ?;";
+
+        sqlx::query(&sql)
+            .bind(summary_phrase)
+            .bind(id)
+            .execute(&*self.db.expose())
+            .await?;
+        Ok(())
+    }
+
+    pub async fn find_by_username_and_directory(
+        &self,
+        username: String,
+        directory: String,
+    ) -> Result<Vec<Session>, Error> {
+        let sql = "SELECT * FROM sessions WHERE username = ? AND directory = ? ORDER BY updated_at ASC;";
+
+        Ok(sqlx::query_as::<_, Session>(&sql)
+            .bind(username)
+            .bind(directory)
+            .fetch_all(&*self.db.expose())
+            .await?)
     }
 
     pub async fn find_by_id(&self, id: uuid::Uuid) -> Result<Option<Session>, Error> {

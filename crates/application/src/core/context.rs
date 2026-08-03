@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use std::sync::Arc;
 
 use tracing::info;
@@ -11,8 +12,10 @@ use agente_infrastructure::config::Config;
 
 use crate::core::append_to_conversation;
 use crate::repositories::conversation::ConversationRepository;
+use crate::repositories::session::SessionRepository;
 
 pub struct Context {
+    session_repository: Arc<SessionRepository>,
     conversation_repository: Arc<ConversationRepository>,
     session_id: String,
     messages: Vec<MessageRequest>,
@@ -20,6 +23,7 @@ pub struct Context {
 
 impl Context {
     pub fn init(
+        session_repository: Arc<SessionRepository>,
         conversation_repository: Arc<ConversationRepository>,
         name: String,
         session_id: String,
@@ -42,6 +46,7 @@ impl Context {
 
         info!(name: "messages", "{:#?}", message_requests);
         Self {
+            session_repository,
             conversation_repository,
             session_id,
             messages: message_requests,
@@ -114,9 +119,6 @@ impl Context {
 
     // @TODO: should save summarized conversations into the db and fetch it
     // instead of listing every message.
-    // @TODO: should save a conversation resume in the session table to us can
-    // list the current sessions and see what they are about and get the id to
-    // start it.
     pub async fn summarize(
         &mut self,
         agent: &Box<dyn AiProvider>,
@@ -146,7 +148,27 @@ impl Context {
                 ])
                 .await?;
 
-            info!("summarized: {}", summarized_text);
+            let summarized_phrase = agent
+                .plain_ask(vec![
+                    MessageRequest {
+                        role: MessageRole::System,
+                        content: summarize_phrase_prompt(),
+                    },
+                    MessageRequest {
+                        role: MessageRole::User,
+                        content: summarized_text.clone(),
+                    },
+                ])
+                .await?;
+
+            let session_id =
+                uuid::Uuid::from_str(&self.session_id).expect("Invalid session id");
+            self.session_repository
+                .change_summary_phrase(session_id, summarized_phrase.clone())
+                .await
+                .expect("Failed to save session summary");
+
+            info!("summarized: {} | {}", summarized_phrase, summarized_text);
             self.messages.push(MessageRequest {
                 role: MessageRole::Assistant,
                 content: format!("Conversation summary until now: {summarized_text}"),
@@ -155,6 +177,10 @@ impl Context {
 
         Ok(())
     }
+}
+
+fn summarize_phrase_prompt() -> String {
+    load_file_installed("prompts/context/summarize_as_phrase.txt", vec![])
 }
 
 fn summarize_messages_prompt() -> String {
