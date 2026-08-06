@@ -15,7 +15,7 @@ use agente_application::repositories::conversation::ConversationRepository;
 use agente_application::repositories::session::SessionRepository;
 use agente_domain::ports::ai_provider::{AiProvider, AiProviderConfig};
 use agente_infrastructure::adapters::database::sqlite::SqliteDatabase;
-use agente_infrastructure::adapters::providers::openai::OpenAI;
+use agente_infrastructure::adapters::providers::generic::GenericAiProvider;
 use agente_infrastructure::adapters::util::file_system::FileSystem;
 use agente_infrastructure::config::Config;
 
@@ -48,25 +48,7 @@ async fn main() {
     let (config, session_repository, conversation_repository) = setup().await;
     let args = Args::parse();
     if args.ls == true {
-        let sessions = list_sessions_per_users_and_directory(session_repository.clone())
-            .await
-            .expect("Failed to list available sessions");
-        let text_to_print = sessions
-            .iter()
-            .map(|session| {
-                format!(
-                    "- **ID:** {}\n  - **Content:** `{}`\n  - **Last update:** {}",
-                    session.id.to_string(),
-                    session
-                        .summary_phrase
-                        .clone()
-                        .unwrap_or("No content yet".to_string()),
-                    session.updated_at.to_string(),
-                )
-            })
-            .collect::<Vec<_>>()
-            .join("\n");
-        termimad::print_text(&text_to_print);
+        print_sessions_ls_command(session_repository.clone()).await;
         return;
     }
 
@@ -175,13 +157,38 @@ fn provider_factory(provider: Provider, config: &Config) -> Box<dyn AiProvider> 
 
     match provider {
         Provider::OPENAI => init_provider("Open AI", config.openai.clone(), |c| {
-            Box::new(OpenAI::new(c, None))
+            Box::new(GenericAiProvider::new(
+                c,
+                "https://api.openai.com/v1/responses",
+            ))
         }),
         Provider::GROQ => init_provider("Groq", config.groq.clone(), |c| {
-            Box::new(OpenAI::new(
+            Box::new(GenericAiProvider::new(
                 c,
-                Some("https://api.groq.com/openai/v1/chat/completions"),
+                "https://api.groq.com/openai/v1/chat/completions",
             ))
         }),
     }
+}
+
+async fn print_sessions_ls_command(session_repository: Arc<SessionRepository>) {
+    let sessions = list_sessions_per_users_and_directory(session_repository)
+        .await
+        .expect("Failed to list available sessions");
+    let text_to_print = sessions
+        .iter()
+        .map(|session| {
+            format!(
+                "- **ID:** {}\n  - **Content:** `{}`\n  - **Last update:** {}",
+                session.id.to_string(),
+                session
+                    .summary_phrase
+                    .clone()
+                    .unwrap_or("No content yet".to_string()),
+                session.updated_at.to_string(),
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    termimad::print_text(&text_to_print);
 }

@@ -8,20 +8,19 @@ use agente_domain::ports::ai_provider::{
 
 use crate::adapters::util::load_file_installed::load_file_installed;
 
-const DEFAULT_OPENAI_URL: &str = "https://api.openai.com/v1/responses";
-
-pub struct OpenAI {
+/// This is generic ai provider compatible with OpenAI, Groq and OpenRouter
+pub struct GenericAiProvider {
     config: AiProviderConfig,
     client: reqwest::Client,
     url: String,
 }
 
-impl OpenAI {
-    pub fn new(config: AiProviderConfig, url: Option<&str>) -> Self {
+impl GenericAiProvider {
+    pub fn new(config: AiProviderConfig, url: &str) -> Self {
         Self {
             config,
             client: reqwest::Client::new(),
-            url: url.unwrap_or(DEFAULT_OPENAI_URL).to_string(),
+            url: url.to_string(),
         }
     }
 
@@ -129,7 +128,7 @@ impl OpenAI {
 }
 
 #[async_trait::async_trait]
-impl AiProvider for OpenAI {
+impl AiProvider for GenericAiProvider {
     async fn ask(
         &self,
         messages: Vec<MessageRequest>,
