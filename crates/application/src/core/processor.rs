@@ -107,6 +107,8 @@ impl Processor {
         Ok(())
     }
 
+    // @TODO: instead of saving tool response, save only the return agent
+    // analysis of the response, great to keep context small
     #[async_recursion::async_recursion]
     async fn recursively_process_prompt(
         &mut self,
