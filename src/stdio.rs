@@ -38,7 +38,7 @@ pub async fn start_stdio(
         }
     });
 
-    draw_banner(session.id.to_string());
+    draw_banner(session.id.to_string(), session.summary_phrase.clone());
     draw_message(&name, "Hello! Send me a message!");
     draw_input();
 
@@ -153,7 +153,7 @@ fn draw_message(name: &String, message: impl Into<String> + std::fmt::Display) {
     );
 }
 
-fn draw_banner(session_id: String) {
+fn draw_banner(session_id: String, session_summary: Option<String>) {
     let banner = format!(
         "
 ┌───────────────────────────── \x1b[32mAGENTE\x1b[0m ─────────────────────────────┐
@@ -164,11 +164,12 @@ fn draw_banner(session_id: String) {
          at: http://localhost:{:<27}│
 │ \x1b[32m/ \\ / \\\x1b[0m  Working dir: {:<43}│
 └──────────────────────────────────────────────────────────────────┘
-* Resuming sessions can have a lot of context, use a MEMORY.md to not waste tokens!
+* {}
 ",
         session_id,
         Config::port(),
         Config::pwd(),
+        session_summary.unwrap_or("Fresh session starting...".to_string()),
     );
 
     print!("{banner}\n");
