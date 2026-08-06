@@ -31,7 +31,6 @@ impl Context {
         messages: Vec<Message>,
         custom_system_prompt: Option<String>,
     ) -> Self {
-        // @TODO: should get messages from conversation as summarized
         let date = chrono::Utc::now().format("%Y/%m/%d").to_string();
         let mut message_requests = vec![MessageRequest {
             role: MessageRole::System,
@@ -107,6 +106,7 @@ impl Context {
                     self.session_id.clone(),
                     role,
                     prompt,
+                    false,
                 )
                 .await
                 .expect("Failed to append message to conversation");
@@ -120,14 +120,12 @@ impl Context {
         }
     }
 
-    // @TODO: should save summarized conversations into the db and fetch it
-    // instead of listing every message.
     pub async fn summarize(
         &mut self,
         agent: &Box<dyn AiProvider>,
         force: bool,
     ) -> Result<(), AiProviderError> {
-        if force && self.__start_messages_count <= self.messages.len() {
+        if force && self.__start_messages_count == self.messages.len() - 1 {
             return Ok(());
         }
 
@@ -155,6 +153,22 @@ impl Context {
                 ])
                 .await?;
 
+            let message = format!("Conversation summary until now: {summarized_text}");
+            append_to_conversation(
+                self.conversation_repository.clone(),
+                self.session_id.clone(),
+                MessageRole::Assistant,
+                message.clone(),
+                true,
+            )
+            .await
+            .expect("Failed to append summarized message to conversation");
+
+            self.messages.push(MessageRequest {
+                role: MessageRole::Assistant,
+                content: message,
+            });
+
             let summarized_phrase = agent
                 .plain_ask(vec![
                     MessageRequest {
@@ -176,10 +190,6 @@ impl Context {
                 .expect("Failed to save session summary");
 
             info!("summarized: {} | {}", summarized_phrase, summarized_text);
-            self.messages.push(MessageRequest {
-                role: MessageRole::Assistant,
-                content: format!("Conversation summary until now: {summarized_text}"),
-            });
         }
 
         Ok(())

@@ -51,11 +51,13 @@ pub async fn append_to_conversation(
     session_id: String,
     role: MessageRole,
     content: String,
+    is_summarized: bool,
 ) -> Result<(), Error> {
     let message = Message::new(
         uuid::Uuid::from_str(&session_id)?,
         role.to_string(),
         content,
+        is_summarized,
     );
 
     conversation_repository.append(&message).await?;

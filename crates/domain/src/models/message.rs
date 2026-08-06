@@ -10,16 +10,23 @@ pub struct Message {
     pub sent_at: DateTime<Utc>,
     pub role: String,
     pub content: String,
+    pub is_summarized: bool,
 }
 
 impl Message {
-    pub fn new(session_id: Uuid, role: String, content: String) -> Self {
+    pub fn new(
+        session_id: Uuid,
+        role: String,
+        content: String,
+        is_summarized: bool,
+    ) -> Self {
         Self {
             id: Uuid::new_v4(),
             session_id,
             sent_at: Utc::now(),
             role,
             content,
+            is_summarized,
         }
     }
 }
