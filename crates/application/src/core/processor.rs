@@ -96,24 +96,20 @@ impl Processor {
                 }
 
                 self.__sender.send(TaskResponse::Error(error)).await?;
-                let failed_prompt = format!(
-                    "Failed to process prompt: {prompt}, use another tool \
-                                 to find context and then retry it"
-                );
-                self.mloop(failed_prompt, max_retries).await?;
+                self.mloop(prompt, max_retries).await?;
             }
         }
 
         Ok(())
     }
 
-    // @TODO: instead of saving tool response, save only the return agent
-    // analysis of the response, great to keep context small
+    // @TODO: if a tool execute and then fail to process the result, use the result
+    // as the prompt to retry and dont reexecute the tool unless the tool fail
     #[async_recursion::async_recursion]
     async fn recursively_process_prompt(
         &mut self,
         prompt: String,
-        is_refeed: bool,
+        is_tool_execution_result: bool,
         last_executed_tool_hash: Option<String>,
     ) -> Result<(), Error> {
         if prompt.is_empty() {
@@ -121,7 +117,9 @@ impl Processor {
         }
 
         self.__sender.send(TaskResponse::Thinking).await?;
-        let response = self.process_prompt(prompt.clone(), is_refeed).await?;
+        let response = self
+            .process_prompt(prompt.clone(), is_tool_execution_result)
+            .await?;
         match response {
             AskResponse::Content(text) => {
                 self.__sender

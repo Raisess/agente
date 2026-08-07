@@ -64,10 +64,10 @@ impl Context {
         &mut self,
         agent: &Box<dyn AiProvider>,
         prompt: String,
-        is_refeed: bool,
+        is_tool_execution_result: bool,
     ) -> Result<AskResponse, AiProviderError> {
-        info!("asking...");
-        let role = if is_refeed {
+        info!("Asking...");
+        let role = if is_tool_execution_result {
             MessageRole::Assistant
         } else {
             MessageRole::User
@@ -81,35 +81,56 @@ impl Context {
         info!(name: "history", "{:#?}", self.messages);
         match agent.ask(self.messages.clone()).await {
             Ok(ask_response) => {
+                let response = match ask_response {
+                    AskResponse::Content(ref text) => text.clone(),
+                    AskResponse::ToolCall(ref tools) => {
+                        format!(
+                            "Executed tools: {}",
+                            tools
+                                .iter()
+                                .map(|(tool, args)| AskResponse::generate_tool_hash(
+                                    tool, args
+                                ))
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        )
+                    }
+                };
+
+                // @NOTE: Drop tool result and keep only the response
+                if is_tool_execution_result {
+                    self.messages.pop();
+                }
+
                 self.messages.push(MessageRequest {
                     role: MessageRole::Assistant,
-                    content: match ask_response {
-                        AskResponse::Content(ref text) => text.clone(),
-                        AskResponse::ToolCall(ref tools) => {
-                            format!(
-                                "Executed tools: {}",
-                                tools
-                                    .iter()
-                                    .map(|(tool, args)| AskResponse::generate_tool_hash(
-                                        tool, args
-                                    ))
-                                    .collect::<Vec<_>>()
-                                    .join(", ")
-                            )
-                        }
-                    },
+                    content: response.clone(),
                 });
-                info!("done!");
+                info!("Asked!");
+
+                info!("Appending messages to conversation...");
+                if !is_tool_execution_result {
+                    append_to_conversation(
+                        self.conversation_repository.clone(),
+                        self.session_id.clone(),
+                        MessageRole::User,
+                        prompt,
+                        false,
+                    )
+                    .await
+                    .expect("Failed to append user message to conversation");
+                }
 
                 append_to_conversation(
                     self.conversation_repository.clone(),
                     self.session_id.clone(),
-                    role,
-                    prompt,
+                    MessageRole::Assistant,
+                    response,
                     false,
                 )
                 .await
-                .expect("Failed to append message to conversation");
+                .expect("Failed to append assistent message to conversation");
+                info!("Messages appended!");
 
                 Ok(ask_response)
             }
@@ -120,6 +141,8 @@ impl Context {
         }
     }
 
+    // @FIXME: if the summarize request fails it will have the messages history
+    // already drained causing the loss of the entire message history
     pub async fn summarize(
         &mut self,
         agent: &Box<dyn AiProvider>,
