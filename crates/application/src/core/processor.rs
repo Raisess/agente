@@ -60,17 +60,20 @@ impl Processor {
         std::process::exit(0);
     }
 
+    pub async fn compact(&mut self) -> Result<(), Error> {
+        self.context.summarize(&self.agent, true).await?;
+        self.__sender
+            .send(TaskResponse::MessageResponse(
+                "Conversation compacted!".to_string(),
+            ))
+            .await?;
+        Ok(())
+    }
+
     pub async fn handle(&mut self, prompt: String) -> Result<(), Error> {
         match prompt.trim() {
             "/exit" => self.exit().await?,
-            "/compact" => {
-                self.context.summarize(&self.agent, true).await?;
-                self.__sender
-                    .send(TaskResponse::MessageResponse(
-                        "Conversation compacted!".to_string(),
-                    ))
-                    .await?;
-            }
+            "/compact" => self.compact().await?,
             v => self.mloop(v.to_string(), 0).await?,
         }
 
