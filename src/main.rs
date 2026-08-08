@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use clap::Parser;
 use tracing_subscriber;
@@ -76,7 +76,7 @@ async fn main() {
         conversation,
         custom_system_prompt,
     );
-    let mut processor = Processor::init(agent, context);
+    let mut processor = Arc::new(Mutex::new(Processor::init(agent, context)));
 
     start_stdio(name, &session, &mut processor).await;
 }

@@ -1,7 +1,9 @@
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
-use rustyline::DefaultEditor;
+use rustyline::Editor;
 use rustyline::error::ReadlineError;
+use rustyline::history::DefaultHistory;
 
 use agente_application::core::processor::{Processor, TaskResponse};
 use agente_domain::{error::Error, models::session::Session};
@@ -13,10 +15,10 @@ use crate::ansi::Ansi;
 pub async fn start_stdio(
     name: String,
     session: &Session,
-    processor: &mut Processor,
+    processor: &mut Arc<Mutex<Processor>>,
 ) -> () {
     let _name = name.clone();
-    let listener = processor.listener();
+    let listener = processor.lock().unwrap().listener();
     tokio::spawn(async move {
         let cloned_listener = listener.clone();
         let mut listener = cloned_listener.lock().await;
@@ -42,15 +44,23 @@ pub async fn start_stdio(
     draw_message(&name, "Hello! Send me a message!");
     draw_input();
 
-    let mut rl = DefaultEditor::new().expect("Failed to start default editor");
+    let mut rl: Editor<CustomRustyLineHelper, DefaultHistory> =
+        Editor::new().expect("Failed to start rustyline");
+    rl.set_helper(Some(CustomRustyLineHelper));
+
     loop {
         let readline = rl.readline("");
         match readline {
             Ok(prompt) => {
-                let _ = processor.handle(prompt).await;
+                let _ = processor.lock().unwrap().handle(prompt).await;
             }
             Err(ReadlineError::Interrupted) => {
-                processor.exit().await.expect("Failed to exit program!");
+                processor
+                    .lock()
+                    .unwrap()
+                    .exit()
+                    .await
+                    .expect("Failed to exit program!");
                 break;
             }
             Err(ReadlineError::Eof) => break,
@@ -174,3 +184,62 @@ fn draw_banner(session_id: String, session_summary: Option<String>) {
 
     print!("{banner}\n");
 }
+
+use rustyline::{
+    Helper,
+    completion::{Completer, Pair},
+    highlight::{CmdKind, Highlighter},
+    hint::Hinter,
+    validate::{ValidationContext, ValidationResult, Validator},
+};
+
+use std::borrow::Cow;
+
+struct CustomRustyLineHelper;
+
+impl Completer for CustomRustyLineHelper {
+    type Candidate = Pair;
+
+    fn complete(
+        &self,
+        _line: &str,
+        _pos: usize,
+        _ctx: &rustyline::Context<'_>,
+    ) -> rustyline::Result<(usize, Vec<Pair>)> {
+        Ok((0, Vec::new()))
+    }
+}
+
+impl Hinter for CustomRustyLineHelper {
+    type Hint = String;
+
+    fn hint(
+        &self,
+        _line: &str,
+        _pos: usize,
+        _ctx: &rustyline::Context<'_>,
+    ) -> Option<String> {
+        None
+    }
+}
+
+impl Validator for CustomRustyLineHelper {
+    fn validate(
+        &self,
+        _ctx: &mut ValidationContext<'_>,
+    ) -> rustyline::Result<ValidationResult> {
+        Ok(ValidationResult::Valid(None))
+    }
+}
+
+impl Highlighter for CustomRustyLineHelper {
+    fn highlight<'l>(&self, line: &'l str, _pos: usize) -> Cow<'l, str> {
+        Cow::Owned(format!("\x1b[48;5;236m{}\x1b[0m", line))
+    }
+
+    fn highlight_char(&self, _line: &str, _pos: usize, _kind: CmdKind) -> bool {
+        true
+    }
+}
+
+impl Helper for CustomRustyLineHelper {}
