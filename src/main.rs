@@ -118,6 +118,7 @@ async fn setup() -> (
 #[derive(Debug, Clone)]
 enum Provider {
     OPENAI,
+    OPENROUTER,
     GROQ,
 }
 
@@ -125,6 +126,7 @@ impl<'s> From<&'s str> for Provider {
     fn from(value: &'s str) -> Self {
         match value {
             "openai" => Provider::OPENAI,
+            "openrouter" => Provider::OPENROUTER,
             "groq" => Provider::GROQ,
             _ => panic!("Invalid provider option!"),
         }
@@ -156,16 +158,25 @@ fn provider_factory(provider: Provider, config: &Config) -> Box<dyn AiProvider> 
     }
 
     match provider {
-        Provider::OPENAI => init_provider("Open AI", config.openai.clone(), |c| {
+        Provider::OPENAI => init_provider("Open AI", config.openai.clone(), |config| {
             Box::new(GenericAiProvider::new(
-                c,
+                config,
                 "https://api.openai.com/v1/responses",
             ))
         }),
-        Provider::GROQ => init_provider("Groq", config.groq.clone(), |c| {
+        // @TODO: change to openrouter specific config
+        Provider::OPENROUTER => {
+            init_provider("OpenRouter", config.openai.clone(), |config| {
+                Box::new(GenericAiProvider::new(
+                    config,
+                    "https://openrouter.ai/api/v1/responses",
+                ))
+            })
+        }
+        Provider::GROQ => init_provider("Groq", config.groq.clone(), |config| {
             Box::new(GenericAiProvider::new(
-                c,
-                "https://api.groq.com/openai/v1/chat/completions",
+                config,
+                "https://api.groq.com/openai/v1/responses",
             ))
         }),
     }

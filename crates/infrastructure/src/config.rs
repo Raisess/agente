@@ -15,6 +15,7 @@ pub struct Config {
     pub openai: Option<AiProviderConfig>,
     /// Groq config
     pub groq: Option<AiProviderConfig>,
+    // @TODO: add openrouter
 }
 
 impl Config {
