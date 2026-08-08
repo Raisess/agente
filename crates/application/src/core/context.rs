@@ -141,8 +141,6 @@ impl Context {
         }
     }
 
-    // @FIXME: if the summarize request fails it will have the messages history
-    // already drained causing the loss of the entire message history
     pub async fn summarize(
         &mut self,
         agent: &Box<dyn AiProvider>,
@@ -154,9 +152,11 @@ impl Context {
 
         if self.messages.len() >= Config::max_context_memory_size() || force {
             info!("summarizing...");
-            let messages = self.messages.drain(1..).collect::<Vec<_>>();
+            // @NOTE: clonning the message history so if something fail we don't
+            // have drained the entire messages data and can retry properly
+            let mut cloned_messages = self.messages.clone();
+            let messages = cloned_messages.drain(1..);
             let messages_prompt = messages
-                .iter()
                 .map(|MessageRequest { role, content }| {
                     format!("Role: {role}, Content: {content}")
                 })
@@ -176,22 +176,6 @@ impl Context {
                 ])
                 .await?;
 
-            let message = format!("Conversation summary until now: {summarized_text}");
-            append_to_conversation(
-                self.conversation_repository.clone(),
-                self.session_id.clone(),
-                MessageRole::Assistant,
-                message.clone(),
-                true,
-            )
-            .await
-            .expect("Failed to append summarized message to conversation");
-
-            self.messages.push(MessageRequest {
-                role: MessageRole::Assistant,
-                content: message,
-            });
-
             let summarized_phrase = agent
                 .plain_ask(vec![
                     MessageRequest {
@@ -205,14 +189,34 @@ impl Context {
                 ])
                 .await?;
 
+            // @TODO: make this atomic
+            // ---
+            let message = format!("Conversation summary until now: {summarized_text}");
+            append_to_conversation(
+                self.conversation_repository.clone(),
+                self.session_id.clone(),
+                MessageRole::Assistant,
+                message.clone(),
+                true,
+            )
+            .await
+            .expect("Failed to append summarized message to conversation");
+
             let session_id =
                 uuid::Uuid::from_str(&self.session_id).expect("Invalid session id");
             self.session_repository
                 .change_summary_phrase(session_id, summarized_phrase.clone())
                 .await
                 .expect("Failed to save session summary");
+            // ---
 
             info!("summarized: {} | {}", summarized_phrase, summarized_text);
+
+            self.messages = cloned_messages;
+            self.messages.push(MessageRequest {
+                role: MessageRole::Assistant,
+                content: message,
+            });
         }
 
         Ok(())
