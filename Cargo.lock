@@ -29,6 +29,7 @@ dependencies = [
  "async-recursion",
  "async-trait",
  "chrono",
+ "serde_json",
  "sqlx",
  "tokio",
  "tracing",

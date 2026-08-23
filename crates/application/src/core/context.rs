@@ -7,6 +7,7 @@ use agente_domain::models::message::Message;
 use agente_domain::ports::ai_provider::{
     AiProvider, AiProviderError, AskResponse, MessageRequest, MessageRole,
 };
+use agente_domain::ports::io::{Reader, Writer};
 use agente_infrastructure::adapters::util::load_file_installed::load_file_installed;
 use agente_infrastructure::config::Config;
 
@@ -87,7 +88,7 @@ impl Context {
                     AskResponse::Content(ref text) => text.clone(),
                     AskResponse::ToolCall(ref tools) => {
                         format!(
-                            "Executed tools: {}",
+                            "I have executed the tools: {}",
                             tools
                                 .iter()
                                 .map(|(tool, args)| AskResponse::generate_tool_hash(
@@ -222,6 +223,18 @@ impl Context {
         }
 
         Ok(())
+    }
+
+    pub fn dump<Fs>(&self, fs: Fs) -> Result<String, std::io::Error>
+    where
+        Fs: Reader + Writer + 'static,
+    {
+        let file_name = format!("{}.json", self.session_id);
+        fs.write(
+            &file_name,
+            &serde_json::to_string_pretty(&self.messages)?.as_bytes(),
+        )?;
+        Ok(file_name)
     }
 }
 

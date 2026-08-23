@@ -9,6 +9,7 @@ use agente_domain::error::Error;
 use agente_domain::ports::ai_provider::{AiProvider, AskResponse};
 use agente_domain::ports::io::{Executor, ExecutorArgument};
 use agente_infrastructure::adapters::util::cmd::CMD;
+use agente_infrastructure::adapters::util::file_system::FileSystem;
 use agente_infrastructure::config::Config;
 
 use crate::core::context::Context;
@@ -60,7 +61,7 @@ impl Processor {
         std::process::exit(0);
     }
 
-    pub async fn compact(&mut self) -> Result<(), Error> {
+    async fn compact(&mut self) -> Result<(), Error> {
         self.context.summarize(&self.agent, true).await?;
         self.__sender
             .send(TaskResponse::MessageResponse(
@@ -70,10 +71,20 @@ impl Processor {
         Ok(())
     }
 
+    async fn dump(&self) -> Result<(), Error> {
+        let file_name = self.context.dump(FileSystem::default())?;
+        let message = format!("Dump completed to {file_name}!");
+        self.__sender
+            .send(TaskResponse::MessageResponse(message))
+            .await?;
+        Ok(())
+    }
+
     pub async fn handle(&mut self, prompt: String) -> Result<(), Error> {
         match prompt.trim() {
             "/exit" => self.exit().await?,
             "/compact" => self.compact().await?,
+            "/dump" => self.dump().await?,
             v => self.mloop(v.to_string(), 0).await?,
         }
 

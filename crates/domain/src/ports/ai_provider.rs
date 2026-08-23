@@ -70,14 +70,14 @@ impl AskResponse {
 }
 
 /// Used to mount the message request vector
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct MessageRequest {
     pub role: MessageRole,
     pub content: String,
 }
 
 /// Message roles enumeration
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub enum MessageRole {
     Assistant,
     System,

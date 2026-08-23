@@ -7,9 +7,10 @@ edition = "2024"
 agente-domain = { path = "../domain" }
 agente-infrastructure = { path = "../infrastructure" }
 async-recursion = "1.1.1"
-sqlx = { workspace = true }
-chrono = { workspace = true }
 async-trait = { workspace = true }
+chrono = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
 uuid = { workspace = true }
