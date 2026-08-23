@@ -14,6 +14,8 @@ use crate::core::append_to_conversation;
 use crate::repositories::conversation::ConversationRepository;
 use crate::repositories::session::SessionRepository;
 
+const DEFAULT_CUSTOM_SYSTEM_PROMPT: &str = "You are an autonomous AI agent running in a agentic loop, designed to help users accomplish tasks, solve problems, and provide accurate information.";
+
 pub struct Context {
     __start_messages_count: usize,
     session_repository: Arc<SessionRepository>,
@@ -239,6 +241,14 @@ fn system_prompt(
 ) -> String {
     load_file_installed(
         "prompts/context/system.md",
-        vec![("name", name), ("current_dir", current_dir), ("date", date), ("custom_prompt", custom_prompt.unwrap_or("You are an autonomous AI agent running in a agentic loop, designed to help users accomplish tasks, solve problems, and provide accurate information.".to_string()))],
+        vec![
+            ("name", name),
+            ("current_dir", current_dir),
+            ("date", date),
+            (
+                "custom_prompt",
+                custom_prompt.unwrap_or(DEFAULT_CUSTOM_SYSTEM_PROMPT.to_string()),
+            ),
+        ],
     )
 }
