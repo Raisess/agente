@@ -42,6 +42,12 @@ impl Config {
         Self::load(fs, None)
     }
 
+    pub fn use_preprocessor() -> bool {
+        std::env::var("USE_PREPROCESSOR")
+            .unwrap_or("0".to_string())
+            .eq("1")
+    }
+
     pub fn pwd() -> String {
         std::env::current_dir()
             .expect("Failed to get current dir")

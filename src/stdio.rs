@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+use agente_application::core::preprocessor::preprocess;
 use rustyline::Editor;
 use rustyline::error::ReadlineError;
 use rustyline::history::DefaultHistory;
@@ -52,7 +53,7 @@ pub async fn start_stdio(
         let readline = rl.readline("");
         match readline {
             Ok(prompt) => {
-                let _ = processor.lock().unwrap().handle(prompt).await;
+                let _ = preprocess(processor, prompt).await;
             }
             Err(ReadlineError::Interrupted) => {
                 processor

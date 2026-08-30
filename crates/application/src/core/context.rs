@@ -22,7 +22,7 @@ pub struct Context {
     session_repository: Arc<SessionRepository>,
     conversation_repository: Arc<ConversationRepository>,
     session_id: String,
-    messages: Vec<MessageRequest>,
+    pub(super) messages: Vec<MessageRequest>,
 }
 
 impl Context {

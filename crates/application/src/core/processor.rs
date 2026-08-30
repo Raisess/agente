@@ -33,8 +33,8 @@ pub struct ToolResponse {
 pub struct Processor {
     __receiver: Arc<Mutex<Receiver<TaskResponse>>>,
     __sender: Sender<TaskResponse>,
-    agent: Box<dyn AiProvider>,
-    context: Context,
+    pub(super) agent: Box<dyn AiProvider>,
+    pub(super) context: Context,
     cmd: CMD,
 }
 
@@ -50,10 +50,38 @@ impl Processor {
         }
     }
 
+    /// Exposes the receveiver mutex for processor internal events handling
+    /// by other parts of the application.
     pub fn listener(&self) -> Arc<Mutex<Receiver<TaskResponse>>> {
         self.__receiver.clone()
     }
 
+    /// This method sends a event that can be used by the stdio interface to
+    /// show up the input prompt again.
+    pub async fn allow_prompt(&self) -> Result<(), Error> {
+        self.__sender.send(TaskResponse::Done).await?;
+        Ok(())
+    }
+
+    /// Process a prompt, this method will send events through the receiver
+    /// (exposed by listener method).
+    pub async fn handle(&mut self, prompt: String) -> Result<(usize, usize), Error> {
+        let (start, end) = {
+            let start = self.context.messages.len(); // not offseting will skip system prompt
+            match prompt.trim() {
+                "/exit" => self.exit().await?,
+                "/compact" => self.compact().await?,
+                "/dump" => self.dump().await?,
+                v => self.prompt_retry_loop(v.to_string(), 0).await?,
+            }
+            let end = self.context.messages.len();
+            (start, end)
+        };
+
+        Ok((start, end))
+    }
+
+    /// Summarize and exit the process with status code 0
     pub async fn exit(&mut self) -> Result<(), Error> {
         println!("Exiting... | Conversation compacting and saving...");
         self.context.summarize(&self.agent, true).await?;
@@ -77,18 +105,6 @@ impl Processor {
         self.__sender
             .send(TaskResponse::MessageResponse(message))
             .await?;
-        Ok(())
-    }
-
-    pub async fn handle(&mut self, prompt: String) -> Result<(), Error> {
-        match prompt.trim() {
-            "/exit" => self.exit().await?,
-            "/compact" => self.compact().await?,
-            "/dump" => self.dump().await?,
-            v => self.prompt_retry_loop(v.to_string(), 0).await?,
-        }
-
-        self.__sender.send(TaskResponse::Done).await?;
         Ok(())
     }
 
