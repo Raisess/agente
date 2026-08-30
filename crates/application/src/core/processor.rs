@@ -85,7 +85,7 @@ impl Processor {
             "/exit" => self.exit().await?,
             "/compact" => self.compact().await?,
             "/dump" => self.dump().await?,
-            v => self.mloop(v.to_string(), 0).await?,
+            v => self.prompt_retry_loop(v.to_string(), 0).await?,
         }
 
         self.__sender.send(TaskResponse::Done).await?;
@@ -93,7 +93,7 @@ impl Processor {
     }
 
     #[async_recursion::async_recursion]
-    async fn mloop(
+    async fn prompt_retry_loop(
         &mut self,
         prompt: String,
         mut max_retries: usize,
@@ -110,7 +110,7 @@ impl Processor {
                 }
 
                 self.__sender.send(TaskResponse::Error(error)).await?;
-                self.mloop(prompt, max_retries).await?;
+                self.prompt_retry_loop(prompt, max_retries).await?;
             }
         }
 

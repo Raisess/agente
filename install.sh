@@ -1,12 +1,7 @@
 #! /bin/bash
 
-# Copy the tools to $HOME/.agente
-mkdir $HOME/.agente
-cp $PWD/tools.json $HOME/.agente/
-cp -r $PWD/tools $HOME/.agente/
-cp -r $PWD/prompts $HOME/.agente/
-
-python3 -m pip install -r ./tools/requirements.txt --break-system-packages
+# Execute auxiliar install script
+bash $PWD/install_prompts_and_tools.sh
 
 # Builds and install the project
 cargo install --path .
