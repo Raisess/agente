@@ -17,7 +17,7 @@ use agente_domain::ports::ai_provider::{AiProvider, AiProviderConfig};
 use agente_infrastructure::adapters::database::sqlite::SqliteDatabase;
 use agente_infrastructure::adapters::providers::generic::GenericAiProvider;
 use agente_infrastructure::adapters::util::file_system::FileSystem;
-use agente_infrastructure::config::Config;
+use agente_infrastructure::config::{Config, ConfigBuilder};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
@@ -86,14 +86,18 @@ async fn setup() -> (
     Arc<SessionRepository>,
     Arc<ConversationRepository>,
 ) {
-    // @FIXME: instead of recreating the entire config file, just append new keys.
+    // @FIXME: instead of recreating the entire config file, just append new
+    // keys.
     let fs = Arc::new(FileSystem::default());
     let config = match Config::load(fs.clone(), None) {
         Ok(c) => c,
-        Err(_) => Config::setup_fallback(fs).expect(
-            "Failed to load config.json on the current path and from \
-             ~/.config/agente/config.json",
-        ),
+        Err(_) => {
+            let setup_config = live_setup();
+            Config::setup_fallback(fs, Some(setup_config)).expect(
+                "Failed to load config.json on the current path and from \
+               ~/.config/agente/config.json",
+            )
+        }
     };
 
     let sqlite = Arc::new(
@@ -115,6 +119,47 @@ async fn setup() -> (
     (config, session_repository, conversation_repository)
 }
 
+fn live_setup() -> Config {
+    use agente_infrastructure::adapters::util::readline::Readline;
+
+    println!("Welcome to the agente setup helper, let's start!\n");
+
+    let mut rl = Readline::new();
+    let provider_input = rl.read("Provider Select:\n\n1. OpenAI\n2. OPENROUTER\n3. Groq\n\nOptions: [1, 2, 3] > ").expect("Failed to read provider input");
+    let provider = match provider_input.as_str() {
+        "1" => Provider::OPENAI,
+        "2" => Provider::OPENROUTER,
+        "3" => Provider::GROQ,
+        _ => panic!("Invalid provider option"),
+    };
+
+    let api_key_input = rl
+        .read("Provide the api key > ")
+        .expect("Failed to read api key input");
+    let model_input = rl
+        .read("Provide the model > ")
+        .expect("Failed to read model input");
+    let cheap_model_input = rl
+        .read("Provide the cheap model (blank to use the same as model) > ")
+        .expect("Failed to read cheap model input");
+    let name_input = rl
+        .read("Provide your agent name > ")
+        .expect("Failed to read agent name");
+
+    let mut builder = ConfigBuilder::default();
+    builder
+        .name(name_input)
+        .provider(provider.to_string())
+        .api_key(api_key_input)
+        .model(model_input)
+        .cheap_model(if cheap_model_input != "" {
+            Some(cheap_model_input)
+        } else {
+            None
+        })
+        .build()
+}
+
 #[derive(Debug, Clone)]
 enum Provider {
     OPENAI,
@@ -130,6 +175,16 @@ impl<'s> From<&'s str> for Provider {
             "groq" => Provider::GROQ,
             _ => panic!("Invalid provider option!"),
         }
+    }
+}
+
+impl ToString for Provider {
+    fn to_string(&self) -> String {
+        String::from(match self {
+            Provider::OPENAI => "openai",
+            Provider::OPENROUTER => "openrouter",
+            Provider::GROQ => "groq",
+        })
     }
 }
 

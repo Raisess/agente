@@ -133,8 +133,9 @@ impl Processor {
         Ok(())
     }
 
-    // @TODO: if a tool execute and then fail to process the result, use the result
-    // as the prompt to retry and dont reexecute the tool unless the tool fail
+    // @TODO: if a tool execute and then fail to process the result, use the
+    // result as the prompt to retry and dont reexecute the tool unless the
+    // tool fail
     #[async_recursion::async_recursion]
     async fn recursively_process_prompt(
         &mut self,
@@ -208,7 +209,8 @@ impl Processor {
     ) -> Result<AskResponse, Error> {
         self.context.summarize(&self.agent, false).await?;
 
-        // @TODO: check input length and split it when it exceeds maximum allowed size
+        // @TODO: check input length and split it when it exceeds maximum
+        // allowed size
         let response = self.context.ask(&self.agent, input, is_refeed).await?;
         Ok(response)
     }

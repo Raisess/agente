@@ -28,17 +28,23 @@ impl Config {
         Ok(Arc::new(config))
     }
 
-    pub fn setup_fallback<Fs>(fs: Arc<Fs>) -> Result<Arc<Self>, std::io::Error>
+    pub fn setup_fallback<Fs>(
+        fs: Arc<Fs>,
+        setup_config: Option<Config>,
+    ) -> Result<Arc<Self>, std::io::Error>
     where
         Fs: Reader + Writer + 'static,
     {
         let config_folder_path = config_folder_path();
         Self::create_dir(&config_folder_path)?;
 
-        fs.write(
-            &default_config_path(),
-            &serde_json::to_string(&Config::default())?.as_bytes(),
-        )?;
+        let json = if setup_config.is_some() {
+            serde_json::to_string(&setup_config.unwrap())?
+        } else {
+            serde_json::to_string(&Config::default())?
+        };
+
+        fs.write(&default_config_path(), &json.as_bytes())?;
         Self::load(fs, None)
     }
 
@@ -116,4 +122,61 @@ fn config_folder_path() -> String {
 fn installed_folder_path() -> String {
     let home = std::env!("HOME");
     format!("{home}/.agente")
+}
+
+#[derive(Default)]
+pub struct ConfigBuilder {
+    name: String,
+    provider: String,
+    api_key: String,
+    model: String,
+    cheap_model: Option<String>,
+}
+
+impl ConfigBuilder {
+    pub fn name(&mut self, name: String) -> &mut ConfigBuilder {
+        self.name = name;
+        self
+    }
+
+    pub fn provider(&mut self, provider: String) -> &mut ConfigBuilder {
+        self.provider = provider;
+        self
+    }
+
+    pub fn api_key(&mut self, api_key: String) -> &mut ConfigBuilder {
+        self.api_key = api_key;
+        self
+    }
+
+    pub fn model(&mut self, model: String) -> &mut ConfigBuilder {
+        self.model = model;
+        self
+    }
+
+    pub fn cheap_model(&mut self, cheap_model: Option<String>) -> &mut ConfigBuilder {
+        self.cheap_model = cheap_model;
+        self
+    }
+
+    pub fn build(&self) -> Config {
+        let mut c = Config {
+            name: Some(self.name.clone()),
+            openai: None,
+            groq: None,
+        };
+
+        match self.provider.as_str() {
+            "openai" => {
+                c.openai = Some(AiProviderConfig {
+                    api_key: self.api_key.clone(),
+                    model: self.model.clone(),
+                    cheap_model: self.cheap_model.clone(),
+                });
+            }
+            _ => panic!("Invalid provider for building config"),
+        }
+
+        c
+    }
 }
