@@ -161,30 +161,8 @@ impl Processor {
                 info!(name: "tools", "tools that will be used: {tools:?}");
 
                 for (tool, arguments) in tools {
-                    let hash = AskResponse::generate_tool_hash(&tool, &arguments);
-                    if last_executed_tool_hash.is_some()
-                        && last_executed_tool_hash.eq(&Some(hash.clone()))
-                    {
-                        let error = Error::new(&format!(
-                            "Trying to execute the same tool again: {hash}"
-                        ));
-                        return Err(error);
-                    }
-
-                    self.__sender
-                        .send(TaskResponse::ToolSignature((
-                            tool.to_string(),
-                            arguments.clone(),
-                        )))
-                        .await?;
-
-                    let tool_response = self.execute_tool(&tool, &arguments)?;
-                    self.__sender
-                        .send(TaskResponse::ToolResponse((
-                            tool.clone(),
-                            arguments,
-                            tool_response.output.clone(),
-                        )))
+                    let (hash, tool_response) = self
+                        .process_tool(last_executed_tool_hash.clone(), tool, arguments)
                         .await?;
 
                     if tool_response.refeed {
@@ -213,6 +191,40 @@ impl Processor {
         // allowed size
         let response = self.context.ask(&self.agent, input, is_refeed).await?;
         Ok(response)
+    }
+
+    async fn process_tool(
+        &mut self,
+        last_executed_tool_hash: Option<String>,
+        tool: String,
+        arguments: HashMap<String, String>,
+    ) -> Result<(String, ToolResponse), Error> {
+        let hash = AskResponse::generate_tool_hash(&tool, &arguments);
+        let is_the_same_tool_as_the_last = last_executed_tool_hash.is_some()
+            && last_executed_tool_hash.eq(&Some(hash.clone()));
+        if is_the_same_tool_as_the_last {
+            let error =
+                Error::new(&format!("Trying to execute the same tool again: {hash}"));
+            return Err(error);
+        }
+
+        self.__sender
+            .send(TaskResponse::ToolSignature((
+                tool.to_string(),
+                arguments.clone(),
+            )))
+            .await?;
+
+        let tool_response = self.execute_tool(&tool, &arguments)?;
+        self.__sender
+            .send(TaskResponse::ToolResponse((
+                tool.clone(),
+                arguments,
+                tool_response.output.clone(),
+            )))
+            .await?;
+
+        Ok((hash, tool_response))
     }
 
     fn execute_tool(
