@@ -50,6 +50,7 @@ pub async fn start_stdio(
         let readline = rl.read("");
         match readline {
             Ok(prompt) => {
+                // @TODO: preprocessor for tools
                 let _ = preprocess(processor, prompt).await;
             }
             Err(ReadlineError::Interrupted) => {

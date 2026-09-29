@@ -13,13 +13,17 @@ const CONTEXT_CHECK_PROMPT_BASE: &str =
 // verifying if the prompt was successfully processed or not and aplying a
 // execution loop that executes until the user request is successfully
 // fulfilled.
+// @TODO: check input length and split it when it exceeds maximum
+// allowed size
 pub async fn preprocess(
     processor: &mut Arc<Mutex<Processor>>,
     prompt: String,
 ) -> Result<(), Error> {
+    let sanitized_prompt = sanitize_prompt(prompt);
+
     let mut p = processor.lock().unwrap();
-    if Config::use_preprocessor() && !prompt.starts_with("/") {
-        let (start_offset, end_offset) = p.handle(prompt.clone()).await?;
+    if Config::use_preprocessor() && !sanitized_prompt.starts_with("/") {
+        let (start_offset, end_offset) = p.handle(sanitized_prompt.clone()).await?;
         let mut messages = p.context.messages.clone();
         let related_messages =
             messages.drain(start_offset..end_offset).collect::<Vec<_>>();
@@ -45,9 +49,18 @@ pub async fn preprocess(
         println!("Response: {response:#?}");
         p.allow_prompt().await?;
     } else {
-        p.handle(prompt).await?;
+        p.handle(sanitized_prompt).await?;
         p.allow_prompt().await?;
     }
 
     Ok(())
+}
+
+fn sanitize_prompt(prompt: String) -> String {
+    prompt
+        .split(" ")
+        .map(|word| word.trim())
+        .filter(|word| !word.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
 }
