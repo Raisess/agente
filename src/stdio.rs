@@ -30,9 +30,6 @@ pub async fn start_stdio(
                 TaskResponse::MessageResponse(message) => {
                     draw_message(&_name, message);
                 }
-                TaskResponse::ToolSignature((command, arguments)) => {
-                    draw_command_signature(command, arguments)
-                }
                 TaskResponse::ToolResponse((command, arguments, response)) => {
                     draw_command_response(command, arguments, response)
                 }
@@ -91,7 +88,7 @@ fn draw_command_response(
 
     if response.is_empty() {
         println!(
-            "{}{}< Resolved({}{command}({parsed_args}){}{}){}",
+            "{}{}< Tool({}{command}({parsed_args}){}{}){}",
             Ansi::BOLD,
             Ansi::FG_BLUE,
             Ansi::RESET,
@@ -102,7 +99,7 @@ fn draw_command_response(
     } else {
         let cropped_response = __truncate_chars(&response, MAX_COMMAND_OUTPUT_SIZE);
         println!(
-            "{}{}< Resolved({}{command}({parsed_args}){}{}){}: {cropped_response}...",
+            "{}{}< Tool({}{command}({parsed_args}){}{}){}: {cropped_response}...",
             Ansi::BOLD,
             Ansi::FG_BLUE,
             Ansi::RESET,
@@ -111,20 +108,6 @@ fn draw_command_response(
             Ansi::RESET
         );
     }
-}
-
-fn draw_command_signature(command: String, arguments: HashMap<String, String>) {
-    let parsed_args = __parse_tool_arguments(arguments);
-
-    println!(
-        "{}{}< Running({}{command}({parsed_args}){}{}){}",
-        Ansi::BOLD,
-        Ansi::FG_BLUE,
-        Ansi::RESET,
-        Ansi::BOLD,
-        Ansi::FG_BLUE,
-        Ansi::RESET
-    );
 }
 
 fn __parse_tool_arguments(arguments: HashMap<String, String>) -> String {

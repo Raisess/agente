@@ -14,7 +14,7 @@ const CONTEXT_CHECK_PROMPT_BASE: &str =
 // execution loop that executes until the user request is successfully
 // fulfilled.
 // @TODO: check input length and split it when it exceeds maximum
-// allowed size
+// allowed size (ps: use embed paragraphs)
 pub async fn preprocess(
     processor: &mut Arc<Mutex<Processor>>,
     prompt: String,
